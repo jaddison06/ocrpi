@@ -1,5 +1,5 @@
-#include <stdio.h>
+#include "testing.h"
 
 int main() {
-    printf("Hello, World!\n");
+    testAll();
 }

@@ -119,7 +119,7 @@ static Token identifier() {
                         if (current - start == 4) return makeTok(checkKeyword(2, "se", Tok_Else));
                         else return makeTok(checkKeyword(2, "seif", Tok_ElseIf));
                     case 'n':
-                        if (start[2] != 'd') return;
+                        if (start[2] != 'd') break;
                         switch (start[3]) {
                             case 'c': return makeTok(checkKeyword(4, "lass", Tok_EndClass));
                             case 'f': return makeTok(checkKeyword(4, "unction", Tok_EndFunction));
@@ -184,7 +184,7 @@ static Token identifier() {
 static Token number() {
     bool isFloat = false;
     while (isDigit(peek())) advance();
-    if (peek() == '.' && isDigit(peekNext)) {
+    if (peek() == '.' && isDigit(peekNext())) {
         isFloat = true;
         advance();
         while (isDigit(peek())) advance();
@@ -241,6 +241,7 @@ static Token symbol(char c) {
 }
 
 LexOutput lex(char* source) {
+    start = current = source;
 
 // workaround for my horrible macro being unable to append literals to an array
     Token newTok;

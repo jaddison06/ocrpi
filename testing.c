@@ -5,6 +5,8 @@
 #include <stdlib.h>
 #include <stdbool.h>
 
+#include "lexer.h"
+
 static char* module;
 
 // slightly yucky but we move
@@ -51,6 +53,42 @@ static void _expectNStr(char* expression, char* expressionStr, int length, char*
     free(buf);
 }
 
+static char* readFile(char* path) {
+    FILE* fp = fopen(path, "rb");
+
+    fseek(fp, 0, SEEK_END);
+    size_t fileSize = ftell(fp);
+    rewind(fp);
+
+    char* out = malloc(fileSize + 1);
+
+    fread(out, sizeof(char), fileSize, fp);
+
+    out[fileSize] = 0;
+
+    fclose(fp);
+
+    return out;
+}
+
 void testAll() {
-    
+    module = "lexer";
+    char* source = readFile("test/lex.ocr");
+    LexOutput output = lex(source);
+    expect(output.errors.len == 0);
+    printf("%i\n", output.toks.len);
+    expect(output.toks.len == 8);
+
+#define expectTok(idx, theType) expect(output.toks.root[idx].type == theType)
+
+    expectTok(0, Tok_If);
+    expectTok(1, Tok_EndIf);
+    expectTok(2, Tok_EndWhile);
+    expectTok(3, Tok_Switch);
+    expectTok(4, Tok_Case);
+    expectTok(5, Tok_Identifier);
+    expectTok(6, Tok_LBracket);
+    expectTok(7, Tok_RBracket);
+
+    destroyLexOutput(output);
 }
