@@ -131,6 +131,51 @@ static Token identifier() {
                 }
             }
             break;
+        case 'f':
+            if (current - start > 1) {
+                switch (start[1]) {
+                    case 'o': return makeTok(checkKeyword(2, "r", Tok_For));
+                    case 'u': return makeTok(checkKeyword(2, "nction", Tok_Function));
+                }
+            }
+            break;
+        case 'g': return makeTok(checkKeyword(1, "lobal", Tok_Global));
+        case 'i':
+            if (current - start == 1 && start[1] == 'f') return makeTok(Tok_If);
+            if (current - start > 1) return makeTok(checkKeyword(1, "nherits", Tok_Inherits));
+        case 'M': return makeTok(checkKeyword(1, "OD", Tok_Mod));
+        case 'n':
+            if (current - start > 2 && start[1] == 'e') {
+                if (current - start == 3 && start[2] == 'w') return makeTok(Tok_New);
+                return makeTok(checkKeyword(2, "xt", Tok_Next));
+            }
+            break;
+        case 'N': return makeTok(checkKeyword(1, "OT", Tok_Not));
+        case 'O': return makeTok(checkKeyword(1, "R", Tok_Or));
+        case 'p':
+            if (current - start > 2) {
+                switch (start[1]) {
+                    case 'r':
+                        switch (start[2]) {
+                            case 'i': return makeTok(checkKeyword(3, "vate", Tok_Private));
+                            case 'o': return makeTok(checkKeyword(3, "cedure", Tok_Procedure));
+                        }
+                    case 'u': return makeTok(checkKeyword(2, "blic", Tok_Public));
+                }
+            }
+            break;
+        case 'r': return makeTok(checkKeyword(1, "eturn", Tok_Return));
+        case 's':
+            if (current - start > 1) {
+                switch (start[1]) {
+                    case 'u': return makeTok(checkKeyword(2, "per", Tok_Super));
+                    case 'w': return makeTok(checkKeyword(2, "itch", Tok_Switch));
+                }
+            }
+            break;
+        case 't': return makeTok(checkKeyword(1, "hen", Tok_Then));
+        case 'u': return makeTok(checkKeyword(1, "ntil", Tok_Until));
+        case 'w': return makeTok(checkKeyword(1, "hile", Tok_While));
     }
     
     return makeTok(Tok_Identifier);
