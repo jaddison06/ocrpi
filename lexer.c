@@ -182,11 +182,25 @@ static Token identifier() {
 }
 
 static Token number() {
-
+    bool isFloat = false;
+    while (isDigit(peek())) advance();
+    if (peek() == '.' && isDigit(peekNext)) {
+        isFloat = true;
+        advance();
+        while (isDigit(peek())) advance();
+    }
+    return makeTok(isFloat ? Tok_FloatLit : Tok_IntLit);
 }
 
 static Token string() {
+    while (peek() != '"' && !isAtEnd()) advance();
 
+    // todo: handle error
+    if (isAtEnd());
+
+    advance();
+
+    return makeTok(Tok_StringLit);
 }
 
 
