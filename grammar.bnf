@@ -1,0 +1,14 @@
+program ::= declaration* EOF
+
+declaration ::= funDecl | procDecl | classDecl | statement
+
+statement ::= exprStmt
+                | globalStmt
+                | forStmt
+                | whileStmt
+                | doStmt
+                | ifStmt
+                | switchStmt
+
+# new ...
+expression ::= assignment
