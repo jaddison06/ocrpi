@@ -76,7 +76,6 @@ void testAll() {
     char* source = readFile("test/lex.ocr");
     LexOutput output = lex(source);
     expect(output.errors.len == 0);
-    printf("%i\n", output.toks.len);
     expect(output.toks.len == 8);
 
 #define expectTok(idx, theType) expect(output.toks.root[idx].type == theType)

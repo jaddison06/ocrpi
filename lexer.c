@@ -67,7 +67,7 @@ static void skipWhitespace() {
 }
 
 static inline Token makeTok(TokType type) {
-    return (Token){
+    return (Token) {
         .type = type,
         .start = start,
         .length = current - start
@@ -141,7 +141,7 @@ static Token identifier() {
             break;
         case 'g': return makeTok(checkKeyword(1, "lobal", Tok_Global));
         case 'i':
-            if (current - start == 1 && start[1] == 'f') return makeTok(Tok_If);
+            if (current - start == 2 && start[1] == 'f') return makeTok(Tok_If);
             if (current - start > 1) return makeTok(checkKeyword(1, "nherits", Tok_Inherits));
         case 'M': return makeTok(checkKeyword(1, "OD", Tok_Mod));
         case 'n':
@@ -265,16 +265,16 @@ LexOutput lex(char* source) {
         skipWhitespace();
         
         start = current;
-        if (isAtEnd) {
+        if (isAtEnd()) {
             addTok(makeTok(Tok_EOF));
+            break;
         }
 
         char c = advance();
 
         if (isAlpha(c)) addTok(identifier());
-        if (isDigit(c)) addTok(number());
-
-        addTok(symbol(c));
+        else if (isDigit(c)) addTok(number());
+        else addTok(symbol(c));
     }
 
     return (LexOutput){
