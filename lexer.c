@@ -168,6 +168,7 @@ static Token identifier() {
         case 's':
             if (current - start > 1) {
                 switch (start[1]) {
+                    case 'e': return makeTok(checkKeyword(2, "lf", Tok_Self));
                     case 'u': return makeTok(checkKeyword(2, "per", Tok_Super));
                     case 'w': return makeTok(checkKeyword(2, "itch", Tok_Switch));
                 }

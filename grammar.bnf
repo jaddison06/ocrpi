@@ -10,5 +10,16 @@ statement ::= exprStmt
                 | ifStmt
                 | switchStmt
 
-# new ...
 expression ::= assignment
+
+assignment ::= ((call ".")? IDENTIFIER "=" assignment) | logicOr
+logicOr ::= logicAnd ("OR" logicAnd)*
+logicAnd ::= equality ("AND" equality)*
+equality ::= comparison (("==" | "!=") comparison)*
+comparison ::= term (("<" | "<=" | ">" | ">=") term)*
+term ::= factor (("+" | "-") factor)*
+factor ::= unary (("*" | "/") unary)*
+unary ::= ("NOT" | "-" | "new") unary | call
+call ::= primary ("(" arguments? ")" | "." IDENTIFIER)*
+primary ::= "self" | NUMBER | STRING | IDENTIFIER | "(" expression ")"
+            | "super" "." IDENTIFIER

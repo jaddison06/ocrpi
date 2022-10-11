@@ -13,7 +13,7 @@ typedef enum {
     Tok_Switch, Tok_Case, Tok_Default, Tok_Endswitch,
     Tok_And, Tok_Or, Tok_Not, Tok_Mod, Tok_Div,
     Tok_Function, Tok_Return, Tok_EndFunction, Tok_Procedure, Tok_EndProcedure, Tok_ByVal, Tok_ByRef,
-    Tok_Class, Tok_EndClass, Tok_Inherits, Tok_Public, Tok_Private, Tok_Super, Tok_New,
+    Tok_Class, Tok_EndClass, Tok_Inherits, Tok_Public, Tok_Private, Tok_Super, Tok_Self, Tok_New,
     Tok_Array,
 
     // Literals + identifiers
