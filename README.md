@@ -10,6 +10,8 @@ As the pseudocode description isn't a de-facto language spec, I've made some ass
 - Variable names can contain any alphanumeric characters and underscores, but may not start with a number
 - String literals are denoted with double quotes ONLY and are never multi-line
 - Variables (when I get there) and parameters are **dynamically typed**, although this will eventually be a configurable option
+- Operator precedence is that of a standard C-like language, described in `grammar.bnf`
+- Added the `self` keyword for classes to refer to instances of themselves
 
 ---
 
