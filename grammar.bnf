@@ -1,6 +1,9 @@
 program ::= declaration* EOF
 
-declaration ::= funDecl | procDecl | classDecl | statement
+# no variable decl - assignment is declaration so it's an expression statement
+# todo: maybe arrays should behave the same? otoh i haven't changed my expression grammar since
+# 1870 and i'm not starting now
+declaration ::= funDecl | procDecl | classDecl | arrayDecl | statement
 
 statement ::= exprStmt
                 | globalStmt
@@ -9,6 +12,10 @@ statement ::= exprStmt
                 | doStmt
                 | ifStmt
                 | switchStmt
+
+return ::= "return" expression
+
+exprStmt ::= expression
 
 expression ::= assignment
 
@@ -21,5 +28,12 @@ term ::= factor (("+" | "-") factor)*
 factor ::= unary (("*" | "/") unary)*
 unary ::= ("NOT" | "-" | "new") unary | call
 call ::= primary ("(" arguments? ")" | "." IDENTIFIER)*
-primary ::= "self" | NUMBER | STRING | IDENTIFIER | "(" expression ")"
+primary ::= "self" | STRING | INT | FLOAT | IDENTIFIER | "(" expression ")"
             | "super" "." IDENTIFIER
+
+funDecl ::= "function" IDENTIFIER "(" parameters? ")" (statement | return)* "endfunction"
+procDecl ::= "procedure" IDENTIFIER "(" parameters? ")" statement* "endprocedure"
+
+singleParameter ::= IDENTIFIER (":" "byVal" | "byRef")?
+parameters ::= singleParameter  ("," singleParameter)*
+arguments ::= expression ("," expression)*
