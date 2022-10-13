@@ -13,9 +13,19 @@ statement ::= exprStmt
                 | ifStmt
                 | switchStmt
 
+# exclusive - don't want it used in procs but side effect is the grammar being tight on its usage - less work later!!
 return ::= "return" expression
 
 exprStmt ::= expression
+globalStmt ::= 
+forStmt ::= "for" IDENTIFIER "=" expression "to" expression declaration* "next" IDENTIFIER
+whileStmt ::= "while" expression declaration* "endwhile"
+# todo: needs endUntil or similar? dunno how i'm going to implement this
+doStmt ::= "do" declaration* "until" expression
+# probably a sexy way to describe this similar to "else if" in a normal grammar, i'm too tired, this flat structure works
+# (if slighly clunkily)
+ifStmt ::= "if" expression "then" declaration* ("elseif" expression "then" declaration*)* ("else" declaration*)? "endif"
+switchStmt ::= "switch" expression ("case" expression ":" declaration*)* ("default" ":" declaration*) "endswitch"
 
 expression ::= assignment
 
@@ -31,8 +41,15 @@ call ::= primary ("(" arguments? ")" | "." IDENTIFIER)*
 primary ::= "self" | STRING | INT | FLOAT | IDENTIFIER | "(" expression ")"
             | "super" "." IDENTIFIER
 
-funDecl ::= "function" IDENTIFIER "(" parameters? ")" (statement | return)* "endfunction"
-procDecl ::= "procedure" IDENTIFIER "(" parameters? ")" statement* "endprocedure"
+funDecl ::= "function" IDENTIFIER "(" parameters? ")" (declaration | return)* "endfunction"
+procDecl ::= "procedure" IDENTIFIER "(" parameters? ")" declaration* "endprocedure"
+arrayDecl ::= 
+classDecl ::= "class" IDENTIFIER ("inherits" IDENTIFIER)? (classMember | classMethod)* "endclass"
+
+classMember ::= storageSpecifier? IDENTIFIER ("=" expression)?
+classMethod ::= storageSpecifier? funDecl | procDecl
+
+storageSpecifier ::= "public" | "private"
 
 singleParameter ::= IDENTIFIER (":" "byVal" | "byRef")?
 parameters ::= singleParameter  ("," singleParameter)*
