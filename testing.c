@@ -76,7 +76,7 @@ void testAll() {
     char* source = readFile("test/lex.ocr");
     LexOutput output = lex(source);
     expect(output.errors.len == 0);
-    expect(output.toks.len == 8);
+    expect(output.toks.len == 11);
 
 #define expectTok(idx, theType) expect(output.toks.root[idx].type == theType)
 
@@ -86,8 +86,11 @@ void testAll() {
     expectTok(3, Tok_Switch);
     expectTok(4, Tok_Case);
     expectTok(5, Tok_Identifier);
-    expectTok(6, Tok_LBracket);
-    expectTok(7, Tok_RBracket);
+    expectTok(6, Tok_LParen);
+    expectTok(7, Tok_RParen);
+    expectTok(8, Tok_Comma);
+    expectTok(9, Tok_Comma);
+    expectTok(10, Tok_Comma);
 
     destroyLexOutput(output);
 }

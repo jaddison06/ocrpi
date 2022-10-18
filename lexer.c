@@ -232,8 +232,9 @@ static Token symbol(char c) {
         case '^': return makeTok(Tok_Exp);
         case ':': return makeTok(Tok_Colon);
         case '.': return makeTok(Tok_Dot);
-        case '(': return makeTok(Tok_LBracket);
-        case ')': return makeTok(Tok_RBracket);
+        case ',': return makeTok(Tok_Comma);
+        case '(': return makeTok(Tok_LParen);
+        case ')': return makeTok(Tok_RParen);
         case '[': return makeTok(Tok_LSquare);
         case ']': return makeTok(Tok_RSquare);
 

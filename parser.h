@@ -91,8 +91,21 @@ typedef struct {
     };
 } Statement;
 
-typedef struct {
+typedef enum {
+    Param_byRef, Param_byVal
+} ParamPassMode;
 
+typedef struct {
+    Token name;
+    ParamPassMode passMode;
+} Parameter;
+
+DECL_VEC(Parameter, ParamList);
+
+typedef struct {
+    Token name;
+    ParamList params;
+    Scope* block;
 } FunDecl;
 
 typedef struct {
@@ -122,6 +135,7 @@ struct Scope {
 typedef struct {
     Scope ast;
     ParseErrList errors;
-} ParserOutput;
+} ParseOutput;
 
-ParserOutput parse(LexOutput lo);
+ParseOutput parse(LexOutput lo);
+void DestroyParseOutput(ParseOutput po);

@@ -14,12 +14,12 @@
 } while(0)
 
 #define INIT(vec) do { \
-    vec.root = malloc(sizeof(*vec.root)); \
-    vec.cap = 1; \
-    vec.len = 0; \
+    (vec).root = malloc(sizeof(*(vec).root)); \
+    (vec).cap = 1; \
+    (vec).len = 0; \
 } while(0)
 
-#define DESTROY(vec) free(vec.root)
+#define DESTROY(vec) free((vec).root)
 
 // doesn't do any additional typedefs so theoretically ur in the clear
 // to have multiple identical vec types. probs best not to tho -
