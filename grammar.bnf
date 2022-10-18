@@ -37,9 +37,10 @@ comparison ::= term (("<" | "<=" | ">" | ">=") term)*
 term ::= factor (("+" | "-") factor)*
 factor ::= unary (("*" | "/") unary)*
 unary ::= ("NOT" | "-" | "new") unary | call
-call ::= primary ("(" arguments? ")" | "." IDENTIFIER)*
-primary ::= "self" | STRING | INT | FLOAT | IDENTIFIER | "(" expression ")"
-            | "super" "." IDENTIFIER
+call ::= super ("(" arguments? ")" | "." IDENTIFIER)*
+super ::= "super" "." IDENTIFIER | grouping
+grouping ::= "(" expression ")" | primary
+primary ::= "self" | STRING | INT | FLOAT | IDENTIFIER
 
 funDecl ::= "function" IDENTIFIER "(" parameters? ")" (declaration | return)* "endfunction"
 procDecl ::= "procedure" IDENTIFIER "(" parameters? ")" declaration* "endprocedure"
