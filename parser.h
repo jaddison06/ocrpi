@@ -12,6 +12,7 @@ typedef struct {
 DECL_VEC(ParseError, ParseErrList)
 
 typedef struct Expression Expression;
+typedef struct Scope Scope;
 
 typedef struct {
 
@@ -29,7 +30,7 @@ typedef struct {
 
 } SuperExpr;
 
-typedef Expression GroupingExpr;
+typedef Expression* GroupingExpr;
 typedef Token PrimaryExpr;
 
 struct Expression {
@@ -114,9 +115,9 @@ typedef struct {
 
 DECL_VEC(Declaration, DeclList)
 
-typedef struct {
+struct Scope {
     DeclList declarations;
-} Scope;
+};
 
 typedef struct {
     Scope ast;

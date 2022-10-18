@@ -3,7 +3,20 @@ program ::= declaration* EOF
 # no variable decl - assignment is declaration so it's an expression statement
 # todo: maybe arrays should behave the same? otoh i haven't changed my expression grammar since
 # 1870 and i'm not starting now
-declaration ::= funDecl | procDecl | classDecl | arrayDecl | statement
+declaration ::= funDecl | procDecl | classDecl | statement
+
+# exclusive - don't want it used in procs but side effect is the grammar being tight on its usage - less work later!!
+return ::= "return" expression
+
+funDecl ::= "function" IDENTIFIER "(" parameters? ")" (declaration | return)* "endfunction"
+procDecl ::= "procedure" IDENTIFIER "(" parameters? ")" declaration* "endprocedure"
+classDecl ::= "class" IDENTIFIER ("inherits" IDENTIFIER)? (classMember | classMethod)* "endclass"
+
+# todo: tidy up grammar for array members
+classMember ::= storageSpecifier? (IDENTIFIER ("=" expression)?) | arrayStmt
+classMethod ::= storageSpecifier? funDecl | procDecl
+
+storageSpecifier ::= "public" | "private"
 
 statement ::= exprStmt
                 | globalStmt
@@ -12,12 +25,10 @@ statement ::= exprStmt
                 | doStmt
                 | ifStmt
                 | switchStmt
-
-# exclusive - don't want it used in procs but side effect is the grammar being tight on its usage - less work later!!
-return ::= "return" expression
+                | arrayStmt
 
 exprStmt ::= expression
-globalStmt ::= 
+globalStmt ::= "global" IDENTIFIER "=" expression
 forStmt ::= "for" IDENTIFIER "=" expression "to" expression declaration* "next" IDENTIFIER
 whileStmt ::= "while" expression declaration* "endwhile"
 # todo: needs endUntil or similar? dunno how i'm going to implement this
@@ -26,6 +37,9 @@ doStmt ::= "do" declaration* "until" expression
 # (if slighly clunkily)
 ifStmt ::= "if" expression "then" declaration* ("elseif" expression "then" declaration*)* ("else" declaration*)? "endif"
 switchStmt ::= "switch" expression ("case" expression ":" declaration*)* ("default" ":" declaration*) "endswitch"
+# what the fuck is this supposed to init to? todo: optional array initialization,
+# for now it'll probably be a bad hacky crashy nil type
+arrayStmt ::= "array" IDENTIFIER "[" expression ("," expression)* "]"
 
 expression ::= assignment
 
@@ -37,20 +51,10 @@ comparison ::= term (("<" | "<=" | ">" | ">=") term)*
 term ::= factor (("+" | "-") factor)*
 factor ::= unary (("*" | "/") unary)*
 unary ::= ("NOT" | "-" | "new") unary | call
-call ::= super ("(" arguments? ")" | "." IDENTIFIER)*
+call ::= super ("(" arguments? ")" | "[" EXPRESSION "]" | "." IDENTIFIER)*
 super ::= "super" "." IDENTIFIER | grouping
 grouping ::= "(" expression ")" | primary
 primary ::= "self" | STRING | INT | FLOAT | IDENTIFIER
-
-funDecl ::= "function" IDENTIFIER "(" parameters? ")" (declaration | return)* "endfunction"
-procDecl ::= "procedure" IDENTIFIER "(" parameters? ")" declaration* "endprocedure"
-arrayDecl ::= 
-classDecl ::= "class" IDENTIFIER ("inherits" IDENTIFIER)? (classMember | classMethod)* "endclass"
-
-classMember ::= storageSpecifier? IDENTIFIER ("=" expression)?
-classMethod ::= storageSpecifier? funDecl | procDecl
-
-storageSpecifier ::= "public" | "private"
 
 singleParameter ::= IDENTIFIER (":" "byVal" | "byRef")?
 parameters ::= singleParameter  ("," singleParameter)*
