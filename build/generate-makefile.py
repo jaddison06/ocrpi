@@ -31,7 +31,7 @@ LIBS: dict[str, list[str]] = {}
 EXECUTABLE = 'ocrpi'
 SOURCE_EXTS = ['.c']
 HEADER_EXTS = ['.h']
-PYTHON = 'python3'
+PYTHON = 'python'
 # If these files change, recompile EVERYTHING
 COMMON_DEPENDENCIES = []
 

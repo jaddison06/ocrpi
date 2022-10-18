@@ -1,4 +1,5 @@
 build/objects
 ocrpi
+ocrpi.exe
 Makefile
 .vscode
