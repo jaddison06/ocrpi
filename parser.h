@@ -74,7 +74,11 @@ typedef struct {
 } SwitchStmt;
 
 typedef struct {
-    enum { Stmt_Expr, Stmt_Global, Stmt_For, Stmt_While, Stmt_Do, Stmt_If, Stmt_Switch } tag;
+
+} ArrayStmt;
+
+typedef struct {
+    enum { Stmt_Expr, Stmt_Global, Stmt_For, Stmt_While, Stmt_Do, Stmt_If, Stmt_Switch, Stmt_Array } tag;
     union {
         ExprStmt expr;
         GlobalStmt global;
@@ -83,6 +87,7 @@ typedef struct {
         DoStmt do_;
         IfStmt if_;
         SwitchStmt switch_;
+        ArrayStmt array;
     };
 } Statement;
 
@@ -99,17 +104,12 @@ typedef struct {
 } ClassDecl;
 
 typedef struct {
-
-} ArrayDecl;
-
-typedef struct {
-    enum { Decl_Stmt, Decl_Fun, Decl_Proc, Decl_Class, Decl_Array } tag;
+    enum { Decl_Stmt, Decl_Fun, Decl_Proc, Decl_Class } tag;
     union {
         Statement stmt;
         FunDecl fun;
         ProcDecl proc;
         ClassDecl class;
-        ArrayDecl array;
     };
 } Declaration;
 
