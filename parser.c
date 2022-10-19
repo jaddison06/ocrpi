@@ -41,6 +41,9 @@ static Token consume(TokType type, char* message) {
     panic(message);
 }
 
+// forward decls
+static Declaration declaration();
+
 static inline ParamPassMode passMode(TokType type) {
     if (!(type == Tok_ByRef || type == Tok_ByVal)) panic("Expected 'byRef' or 'byVal'");
     return type == Tok_ByRef ? Param_byRef : Param_byVal;
@@ -69,9 +72,8 @@ static void params(ParamList out) {
 }
 
 static void block(Scope* scope, TokType end) {
-    Declaration currentDecl;
     while (!match(end)) {
-        currentDecl = declaration();
+        Declaration currentDecl = declaration();
         APPEND(scope->declarations, currentDecl);
     }
 }
@@ -80,10 +82,13 @@ static FunDecl function() {
     FunDecl out;
     // todo: cleanup
     INIT(out.params);
-    INIT(out.block->declarations);
+    INIT(out.block);
     consume(Tok_Function, "Expected 'function'");
     out.name = consume(Tok_Identifier, "Expected function name");
     params(out.params);
+    while (!match(Tok_EndFunction)) {
+
+    }
     block(out.block, Tok_EndFunction);
     return out;
 }
@@ -186,8 +191,7 @@ static IfStmt if_() {
         match(Tok_Else) ||
         match(Tok_EndIf)
     )) {
-        Declaration currentDecl;
-        currentDecl = declaration();
+        Declaration currentDecl = declaration();
         APPEND(out.primary.block->declarations, currentDecl);
     }
 
@@ -207,8 +211,7 @@ static IfStmt if_() {
                     match(Tok_Else) ||
                     match(Tok_EndIf)
                 )) {
-                    Declaration currentDecl;
-                    currentDecl = declaration();
+                    Declaration currentDecl = declaration();
                     APPEND(currentBlock.block->declarations, currentDecl);
                 }
                 APPEND(out.secondary, currentBlock);
@@ -224,29 +227,45 @@ static IfStmt if_() {
         }
     }
 
-
     return out;
 }
 
 static SwitchStmt switch_() {
     SwitchStmt out;
 
+    INIT(out.cases);
+    out.hasDefault = false;
+
     consume(Tok_Switch, "Expected 'switch'");
     out.expr = expression();
 
+
     while (!match(Tok_EndSwitch)) {
+        if (out.hasDefault) panic("'default' must be the last case in a switch statement!");
         if (match(Tok_Case)) {
             ConditionalBlock currentBlock;
             currentBlock.condition = expression();
+            INIT(currentBlock.block->declarations);
             consume(Tok_Colon, "Expected ':'");
             while (!(
                 match(Tok_Case) ||
                 match(Tok_Default) ||
                 match(Tok_EndSwitch)
             )) {
-                // basically the same as if handling
-                // default must come LAST!!!
-                // (no reason other than pedantics x)
+                Declaration currentDecl = declaration();
+                APPEND(currentBlock.block->declarations, currentDecl);
+            }
+            APPEND(out.cases, currentBlock);
+        } else if (match(Tok_Default)) {
+            out.hasDefault = true;
+            INIT(out.default_->declarations);
+            consume(Tok_Colon, "Expected ':'");
+            // todo: this makes the default check redundant -
+            // update when we (eventually) figure out
+            // isAtEnd checks everywhere
+            while (!match(Tok_EndSwitch)) {
+                Declaration currentDecl = declaration();
+                APPEND(out.default_->declarations, currentDecl);
             }
         }
     }
@@ -256,8 +275,20 @@ static SwitchStmt switch_() {
 
 static ArrayStmt array() {
     ArrayStmt out;
+    
+    INIT(out.dimensions);
 
+    consume(Tok_Array, "Expected 'array'");
+    out.name = consume(Tok_Identifier, "Expected array name");
+    consume(Tok_LSquare, "Expected '['");
+    Expression currentExpr = expression();
+    APPEND(out.dimensions, currentExpr);
+    while (match(Tok_Comma)) {
+        currentExpr = expression();
+        APPEND(out.dimensions, currentExpr);
+    }
 
+    consume(Tok_RSquare, "Expected ']'");
 
     return out;
 }

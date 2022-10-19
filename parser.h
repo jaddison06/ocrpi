@@ -85,11 +85,14 @@ typedef struct {
     Expression expr;
     SwitchCaseList cases;
     bool hasDefault;
-    ConditionalBlock default_;
+    Scope* default_;
 } SwitchStmt;
 
-typedef struct {
+DECL_VEC(Expression, ArrayDimensions)
 
+typedef struct {
+    Token name;
+    ArrayDimensions dimensions;
 } ArrayStmt;
 
 typedef struct {
