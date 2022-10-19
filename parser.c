@@ -20,7 +20,7 @@ static inline Token peek() {
 }
 
 static inline Token advance() {
-    return toks[++current];
+    return toks[current++];
 }
 
 static bool isAtEnd() {
@@ -61,19 +61,19 @@ static Parameter param() {
     if (match(Tok_Colon)) {
         out.passMode = passMode();
     } else {
-        out.passMode = Tok_ByVal;
+        out.passMode = Param_byVal;
     }
     return out;
 }
 
-static void params(ParamList out) {
+static void params(ParamList* out) {
     consume(Tok_LParen, "Expected '('");
     if (!match(Tok_RParen)) {
         Parameter currentParam = param();
-        APPEND(out, currentParam);
+        APPEND(*out, currentParam);
         while (match(Tok_Comma)) {
             currentParam = param();
-            APPEND(out, currentParam);
+            APPEND(*out, currentParam);
         }
     }
     consume(Tok_RParen, "Expected ')'");
@@ -88,17 +88,14 @@ static void block(DeclList* block, TokType end) {
 
 // todo: yikes!!!!!!!!!!!
 static FunDecl function() {
-    printf("it is a function :-)\n");
     FunDecl out;
     // todo: cleanup
     INIT(out.params);
     INIT(out.block);
     consume(Tok_Function, "Expected 'function'");
     out.name = consume(Tok_Identifier, "Expected function name");
-    params(out.params);
-    printf("asdasdsad\n");
+    params(&out.params);
     while (!match(Tok_EndFunction)) {
-        printf("Eeeeeeeeeeeeeeeeeeee!\n");
         DeclOrReturn currentDOR;
         if (match(Tok_Return)) {
             currentDOR.tag = DOR_return;
@@ -112,7 +109,6 @@ static FunDecl function() {
         }
         APPEND(out.block, currentDOR);
     }
-    printf("da vinky?\n");
     return out;
 }
 
@@ -122,7 +118,7 @@ static ProcDecl procedure() {
     DECL_LIST_INIT(out.block);
     consume(Tok_Procedure, "Expected 'procedure'");
     out.name = consume(Tok_Identifier, "Expected procedure name");
-    params(out.params);
+    params(&out.params);
     block(out.block, Tok_EndProcedure);
     return out;
 }
