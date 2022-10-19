@@ -58,6 +58,8 @@ static Parameter param() {
     out.name = consume(Tok_Identifier, "Expected parameter name");
     if (match(Tok_Colon)) {
         out.passMode = passMode(advance().type);
+    } else {
+        out.passMode = Tok_ByVal;
     }
     return out;
 }

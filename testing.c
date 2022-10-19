@@ -6,6 +6,7 @@
 #include <stdbool.h>
 
 #include "lexer.h"
+#include "parser.h"
 
 static char* module;
 
@@ -74,11 +75,11 @@ static char* readFile(char* path) {
 void testAll() {
     module = "lexer";
     char* source = readFile("test/lex.ocr");
-    LexOutput output = lex(source);
-    expect(output.errors.len == 0);
-    expect(output.toks.len == 11);
+    LexOutput lo = lex(source);
+    expect(lo.errors.len == 0);
+    expect(lo.toks.len == 11);
 
-#define expectTok(idx, theType) expect(output.toks.root[idx].type == theType)
+#define expectTok(idx, theType) expect(lo.toks.root[idx].type == theType)
 
     expectTok(0, Tok_If);
     expectTok(1, Tok_EndIf);
@@ -92,5 +93,36 @@ void testAll() {
     expectTok(9, Tok_Comma);
     expectTok(10, Tok_Comma);
 
-    destroyLexOutput(output);
+    destroyLexOutput(lo);
+    free(source);
+
+    module = "parser";
+    source = readFile("test/parse.ocr");
+    lo = lex(source);
+    expect(lo.toks.len == 10);
+
+    ParseOutput po = parse(lo);
+    // general checks
+    expect(po.errors.len == 0);
+    expect(po.ast.len == 1);
+    // function parsed correctly?
+    expect(po.ast.root[0].tag == Decl_Fun);
+    FunDecl fun = po.ast.root[0].fun;
+    // name
+    expect(fun.name.length == 11);
+    expectNStr(fun.name.start, 11, "doSomething");
+    // params
+    expect(fun.params.len == 3);
+    Parameter* params = fun.params.root;
+    expect(params[0].name.length == 1);
+    expect(params[0].name.start[0] == 'a');
+    expect(params[0].passMode == Param_byVal);
+    expect(params[1].name.length == 1);
+    expect(params[1].name.start[0] == 'b');
+    expect(params[1].passMode == Param_byVal);
+    expect(params[2].name.length == 1);
+    expect(params[2].name.start[0] == 'c');
+    expect(params[2].passMode == Param_byRef);
+    // contents
+    expect(fun.block.len == 0);
 }
