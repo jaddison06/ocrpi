@@ -44,6 +44,10 @@ static Token consume(TokType type, char* message) {
 // forward decls
 static Declaration declaration();
 
+static Expression expression() {
+
+}
+
 static inline ParamPassMode passMode(TokType type) {
     if (!(type == Tok_ByRef || type == Tok_ByVal)) panic("Expected 'byRef' or 'byVal'");
     return type == Tok_ByRef ? Param_byRef : Param_byVal;
@@ -71,13 +75,14 @@ static void params(ParamList out) {
     consume(Tok_RParen, "Expected ')'");
 }
 
-static void block(Scope* scope, TokType end) {
+static void block(DeclList* block, TokType end) {
     while (!match(end)) {
         Declaration currentDecl = declaration();
-        APPEND(scope->declarations, currentDecl);
+        APPEND(*block, currentDecl);
     }
 }
 
+// todo: yikes!!!!!!!!!!!
 static FunDecl function() {
     FunDecl out;
     // todo: cleanup
@@ -87,16 +92,26 @@ static FunDecl function() {
     out.name = consume(Tok_Identifier, "Expected function name");
     params(out.params);
     while (!match(Tok_EndFunction)) {
-
+        DeclOrReturn currentDOR;
+        if (match(Tok_Return)) {
+            currentDOR.tag = DOR_return;
+            currentDOR.return_ = expression();
+        } else {
+            currentDOR.tag = DOR_decl;
+            // todo: i'm really tired there's gotta be an easier way of doing this
+            currentDOR.declaration = malloc(sizeof(Declaration));
+            Declaration theDeclaration = declaration();
+            memcpy(currentDOR.declaration, &theDeclaration, sizeof(Declaration));
+        }
+        APPEND(out.block, currentDOR);
     }
-    block(out.block, Tok_EndFunction);
     return out;
 }
 
 static ProcDecl procedure() {
     ProcDecl out;
     INIT(out.params);
-    INIT(out.block->declarations);
+    DECL_LIST_INIT(out.block);
     consume(Tok_Procedure, "Expected 'procedure'");
     out.name = consume(Tok_Identifier, "Expected procedure name");
     params(out.params);
@@ -105,10 +120,6 @@ static ProcDecl procedure() {
 }
 
 static ClassDecl class() {
-
-}
-
-static Expression expression() {
 
 }
 
@@ -126,7 +137,7 @@ static GlobalStmt global() {
 static ForStmt for_() {
     ForStmt out;
 
-    INIT(out.block->declarations);
+    DECL_LIST_INIT(out.block);
 
     consume(Tok_For, "Expected 'for'");
     out.iterator = consume(Tok_Identifier, "Expected iterator name");
@@ -153,7 +164,7 @@ static ForStmt for_() {
 static WhileStmt while_() {
     WhileStmt out;
 
-    INIT(out.block->declarations);
+    DECL_LIST_INIT(out.block);
 
     consume(Tok_While, "Expected 'while'");
     out.condition = expression();
@@ -165,7 +176,7 @@ static WhileStmt while_() {
 static DoStmt do_() {
     DoStmt out;
 
-    INIT(out.block->declarations);
+    DECL_LIST_INIT(out.block);
 
     consume(Tok_Do, "Expected 'do'");
     block(out.block, Tok_Until);
@@ -179,7 +190,7 @@ static DoStmt do_() {
 static IfStmt if_() {
     IfStmt out;
 
-    INIT(out.primary.block->declarations);
+    DECL_LIST_INIT(out.primary.block);
     INIT(out.secondary);
     out.hasElse = false;
 
@@ -192,7 +203,7 @@ static IfStmt if_() {
         match(Tok_EndIf)
     )) {
         Declaration currentDecl = declaration();
-        APPEND(out.primary.block->declarations, currentDecl);
+        APPEND(*out.primary.block, currentDecl);
     }
 
     if (previous().type == Tok_ElseIf) {
@@ -203,7 +214,7 @@ static IfStmt if_() {
                 match(Tok_EndIf)
             )) {
                 ConditionalBlock currentBlock;
-                INIT(currentBlock.block->declarations);
+                DECL_LIST_INIT(currentBlock.block);
                 currentBlock.condition = expression();
                 consume(Tok_Then, "Expected 'then'");
                 while (!(
@@ -212,7 +223,7 @@ static IfStmt if_() {
                     match(Tok_EndIf)
                 )) {
                     Declaration currentDecl = declaration();
-                    APPEND(currentBlock.block->declarations, currentDecl);
+                    APPEND(*currentBlock.block, currentDecl);
                 }
                 APPEND(out.secondary, currentBlock);
             }
@@ -220,7 +231,7 @@ static IfStmt if_() {
         
         if (previous().type == Tok_Else) {
             out.hasElse = true;
-            INIT(out.else_.block->declarations);
+            DECL_LIST_INIT(out.else_.block);
             out.else_.condition = expression();
             consume(Tok_Then, "Expected 'then'");
             block(out.else_.block, Tok_EndIf);
@@ -245,7 +256,7 @@ static SwitchStmt switch_() {
         if (match(Tok_Case)) {
             ConditionalBlock currentBlock;
             currentBlock.condition = expression();
-            INIT(currentBlock.block->declarations);
+            DECL_LIST_INIT(currentBlock.block);
             consume(Tok_Colon, "Expected ':'");
             while (!(
                 match(Tok_Case) ||
@@ -253,19 +264,19 @@ static SwitchStmt switch_() {
                 match(Tok_EndSwitch)
             )) {
                 Declaration currentDecl = declaration();
-                APPEND(currentBlock.block->declarations, currentDecl);
+                APPEND(*currentBlock.block, currentDecl);
             }
             APPEND(out.cases, currentBlock);
         } else if (match(Tok_Default)) {
             out.hasDefault = true;
-            INIT(out.default_->declarations);
+            DECL_LIST_INIT(out.default_);
             consume(Tok_Colon, "Expected ':'");
             // todo: this makes the default check redundant -
             // update when we (eventually) figure out
             // isAtEnd checks everywhere
             while (!match(Tok_EndSwitch)) {
                 Declaration currentDecl = declaration();
-                APPEND(out.default_->declarations, currentDecl);
+                APPEND(*out.default_, currentDecl);
             }
         }
     }
@@ -354,19 +365,20 @@ ParseOutput parse(LexOutput lo) {
     toks = lo.toks.root;
 
     ParseOutput out;
-    INIT(out.ast.declarations);
+    INIT(out.ast);
     INIT(out.errors);
 
     Declaration newDecl;
     while (!isAtEnd()) {
         newDecl = declaration();
-        APPEND(out.ast.declarations, newDecl);
+        APPEND(out.ast, newDecl);
     }
 
     return out;
 }
 
+// yoooooooooooo
 void DestroyParseOutput(ParseOutput po) {
-    DESTROY(po.ast.declarations);
+    DESTROY(po.ast);
     DESTROY(po.errors);
 }

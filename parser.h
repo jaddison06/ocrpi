@@ -13,6 +13,7 @@ typedef struct {
 DECL_VEC(ParseError, ParseErrList)
 
 typedef struct Expression Expression;
+typedef struct Declaration Declaration;
 typedef struct DeclList DeclList;
 
 typedef struct {
@@ -120,10 +121,11 @@ typedef struct {
 
 DECL_VEC(Parameter, ParamList)
 
+// todo: slightly yikes - better grammar? otoh this does do the job
 typedef struct {
     enum { DOR_decl, DOR_return } tag;
     union {
-        Declaration declaration;
+        Declaration* declaration;
         Expression return_;
     };
 } DeclOrReturn;
@@ -146,7 +148,7 @@ typedef struct {
 
 } ClassDecl;
 
-typedef struct {
+struct Declaration {
     enum { Decl_Stmt, Decl_Fun, Decl_Proc, Decl_Class } tag;
     union {
         Statement stmt;
@@ -154,13 +156,13 @@ typedef struct {
         ProcDecl proc;
         ClassDecl class;
     };
-} Declaration;
+};
 
 DECL_VEC_NO_TYPEDEF(Declaration, DeclList)
 
 #define DECL_LIST_INIT(dl) do { \
     dl = malloc(sizeof(DeclList)); \
-    INIT(dl); \
+    INIT(*(dl)); \
 } while (0)
 
 typedef struct {
