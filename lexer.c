@@ -93,8 +93,8 @@ static Token identifier() {
         case 'b':
             if (current - start > 2 && start[1] == 'y') {
                 switch (start[2]) {
-                    case 'R': return makeTok(checkKeyword(2, "ef", Tok_ByRef));
-                    case 'V': return makeTok(checkKeyword(2, "al", Tok_ByVal));
+                    case 'R': return makeTok(checkKeyword(3, "ef", Tok_ByRef));
+                    case 'V': return makeTok(checkKeyword(3, "al", Tok_ByVal));
                 }
             }
             break;

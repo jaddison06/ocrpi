@@ -1,10 +1,11 @@
 #include "parser.h"
 
-static void panic(char* msg) {
-    printf("\x1b[31m%s\x1b[0m\n", msg);
-}
-
 int current = 0;
+
+static void panic(char* msg) {
+    printf("\x1b[31m%s\x1b[0m (@ %i)\n", msg, current);
+    exit(-1);
+}
 
 Token* toks;
 
@@ -19,7 +20,7 @@ static inline Token peek() {
 }
 
 static inline Token advance() {
-    return toks[current++];
+    return toks[++current];
 }
 
 static bool isAtEnd() {
@@ -48,16 +49,17 @@ static Expression expression() {
 
 }
 
-static inline ParamPassMode passMode(TokType type) {
-    if (!(type == Tok_ByRef || type == Tok_ByVal)) panic("Expected 'byRef' or 'byVal'");
-    return type == Tok_ByRef ? Param_byRef : Param_byVal;
+static inline ParamPassMode passMode() {
+    if (match(Tok_ByRef)) return Param_byRef;
+    else if (match(Tok_ByVal)) return Param_byVal;
+    panic("Expected 'byRef' or 'byVal'");
 }
 
 static Parameter param() {
     Parameter out;
     out.name = consume(Tok_Identifier, "Expected parameter name");
     if (match(Tok_Colon)) {
-        out.passMode = passMode(advance().type);
+        out.passMode = passMode();
     } else {
         out.passMode = Tok_ByVal;
     }
