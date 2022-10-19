@@ -1,7 +1,8 @@
 #pragma once
 
-#include "lexer.h"
+#include <stdbool.h>
 
+#include "lexer.h"
 #include "vector.h"
 
 typedef struct {
@@ -50,27 +51,41 @@ typedef struct {
 } ExprStmt;
 
 typedef struct {
-
+    Token name;
+    Expression initializer;
 } GlobalStmt;
 
 typedef struct {
-
+    Token iterator;
+    Expression min;
+    Expression max;
+    Scope* block;
 } ForStmt;
 
 typedef struct {
+    Expression condition;
+    Scope* block;
+} ConditionalBlock;
 
-} WhileStmt;
+typedef ConditionalBlock WhileStmt;
+typedef ConditionalBlock DoStmt;
+
+DECL_VEC(ConditionalBlock, ElseIfList)
 
 typedef struct {
-
-} DoStmt;
-
-typedef struct {
-
+    ConditionalBlock primary;
+    ElseIfList secondary;
+    bool hasElse;
+    ConditionalBlock else_;
 } IfStmt;
 
-typedef struct {
+DECL_VEC(ConditionalBlock, SwitchCaseList)
 
+typedef struct {
+    Expression expr;
+    SwitchCaseList cases;
+    bool hasDefault;
+    ConditionalBlock default_;
 } SwitchStmt;
 
 typedef struct {
@@ -100,7 +115,7 @@ typedef struct {
     ParamPassMode passMode;
 } Parameter;
 
-DECL_VEC(Parameter, ParamList);
+DECL_VEC(Parameter, ParamList)
 
 typedef struct {
     Token name;
@@ -109,7 +124,9 @@ typedef struct {
 } FunDecl;
 
 typedef struct {
-
+    Token name;
+    ParamList params;
+    Scope* block;
 } ProcDecl;
 
 typedef struct {

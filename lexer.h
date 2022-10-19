@@ -9,8 +9,8 @@ typedef enum {
     Tok_Colon, Tok_Dot, Tok_Comma, Tok_LParen, Tok_RParen, Tok_LSquare, Tok_RSquare,
 
     // Keywords
-    Tok_Global, Tok_For, Tok_Next, Tok_While, Tok_EndWhile, Tok_Do, Tok_Until, Tok_If, Tok_Then, Tok_ElseIf, Tok_Else, Tok_EndIf,
-    Tok_Switch, Tok_Case, Tok_Default, Tok_Endswitch,
+    Tok_Global, Tok_For, Tok_To, Tok_Next, Tok_While, Tok_EndWhile, Tok_Do, Tok_Until, Tok_If, Tok_Then, Tok_ElseIf, Tok_Else, Tok_EndIf,
+    Tok_Switch, Tok_Case, Tok_Default, Tok_EndSwitch,
     Tok_And, Tok_Or, Tok_Not, Tok_Mod, Tok_Div,
     Tok_Function, Tok_Return, Tok_EndFunction, Tok_Procedure, Tok_EndProcedure, Tok_ByVal, Tok_ByRef,
     Tok_Class, Tok_EndClass, Tok_Inherits, Tok_Public, Tok_Private, Tok_Super, Tok_Self, Tok_New,

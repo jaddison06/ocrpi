@@ -125,7 +125,7 @@ static Token identifier() {
                             case 'f': return makeTok(checkKeyword(4, "unction", Tok_EndFunction));
                             case 'i': return makeTok(checkKeyword(4, "f", Tok_EndIf));
                             case 'p': return makeTok(checkKeyword(4, "rocedure", Tok_EndProcedure));
-                            case 's': return makeTok(checkKeyword(4, "witch", Tok_Endswitch));
+                            case 's': return makeTok(checkKeyword(4, "witch", Tok_EndSwitch));
                             case 'w': return makeTok(checkKeyword(4, "hile", Tok_EndWhile));
                         }
                 }
@@ -143,6 +143,7 @@ static Token identifier() {
         case 'i':
             if (current - start == 2 && start[1] == 'f') return makeTok(Tok_If);
             if (current - start > 1) return makeTok(checkKeyword(1, "nherits", Tok_Inherits));
+            break;
         case 'M': return makeTok(checkKeyword(1, "OD", Tok_Mod));
         case 'n':
             if (current - start > 2 && start[1] == 'e') {
@@ -174,7 +175,10 @@ static Token identifier() {
                 }
             }
             break;
-        case 't': return makeTok(checkKeyword(1, "hen", Tok_Then));
+        case 't':
+            if (current - start == 2 && start[1] == 'o') return makeTok(Tok_To);
+            if (current - start > 1) return makeTok(checkKeyword(1, "hen", Tok_Then));
+            break;
         case 'u': return makeTok(checkKeyword(1, "ntil", Tok_Until));
         case 'w': return makeTok(checkKeyword(1, "hile", Tok_While));
     }

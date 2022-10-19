@@ -1,7 +1,5 @@
 #include "parser.h"
 
-#include <stdbool.h>
-
 static void panic(char* msg) {
     printf("\x1b[31m%s\x1b[0m\n", msg);
 }
@@ -9,6 +7,12 @@ static void panic(char* msg) {
 int current = 0;
 
 Token* toks;
+
+static inline Token previous() {
+    // todo: sexier way of handling this?
+    if (current == 0) panic("Can't have previous token from position 0!");
+    return toks[current - 1];
+}
 
 static inline Token peek() {
     return toks[current];
@@ -22,6 +26,7 @@ static bool isAtEnd() {
     return peek().type == Tok_EOF;
 }
 
+// todo: refactor w/ varargs to allow matching on multiple types
 static bool match(TokType type) {
     if (isAtEnd()) return false;
     if (peek().type == type) {
@@ -41,36 +46,255 @@ static inline ParamPassMode passMode(TokType type) {
     return type == Tok_ByRef ? Param_byRef : Param_byVal;
 }
 
+static Parameter param() {
+    Parameter out;
+    out.name = consume(Tok_Identifier, "Expected parameter name");
+    if (match(Tok_Colon)) {
+        out.passMode = passMode(advance().type);
+    }
+    return out;
+}
+
+static void params(ParamList out) {
+    consume(Tok_LParen, "Expected '('");
+    if (!match(Tok_RParen)) {
+        Parameter currentParam = param();
+        APPEND(out, currentParam);
+        while (match(Tok_Comma)) {
+            currentParam = param();
+            APPEND(out, currentParam);
+        }
+    }
+    consume(Tok_RParen, "Expected ')'");
+}
+
+static void block(Scope* scope, TokType end) {
+    Declaration currentDecl;
+    while (!match(end)) {
+        currentDecl = declaration();
+        APPEND(scope->declarations, currentDecl);
+    }
+}
+
 static FunDecl function() {
     FunDecl out;
     // todo: cleanup
     INIT(out.params);
+    INIT(out.block->declarations);
     consume(Tok_Function, "Expected 'function'");
     out.name = consume(Tok_Identifier, "Expected function name");
-    consume(Tok_LParen, "Expected '('");
-    if (!match(Tok_RParen)) {
-        Parameter currentParam;
-        currentParam.name = consume(Tok_Identifier, "Expected parameter name");
-        if (match(Tok_Colon)) {
-            currentParam.passMode = passMode(advance().type);
-        }
-        while (match(Tok_Comma)) {
-
-        }
-    }
+    params(out.params);
+    block(out.block, Tok_EndFunction);
+    return out;
 }
 
 static ProcDecl procedure() {
-
+    ProcDecl out;
+    INIT(out.params);
+    INIT(out.block->declarations);
+    consume(Tok_Procedure, "Expected 'procedure'");
+    out.name = consume(Tok_Identifier, "Expected procedure name");
+    params(out.params);
+    block(out.block, Tok_EndProcedure);
+    return out;
 }
 
 static ClassDecl class() {
 
 }
 
-static Statement statement() {
-    // how d'you even go about handling an expr stmt?
+static Expression expression() {
 
+}
+
+static GlobalStmt global() {
+    GlobalStmt out;
+
+    consume(Tok_Global, "Expected 'global'");
+    out.name = consume(Tok_Identifier, "Expected global name");
+    consume(Tok_Equal, "Expected '='");
+    out.initializer = expression();
+
+    return out;
+}
+
+static ForStmt for_() {
+    ForStmt out;
+
+    INIT(out.block->declarations);
+
+    consume(Tok_For, "Expected 'for'");
+    out.iterator = consume(Tok_Identifier, "Expected iterator name");
+    consume(Tok_Equal, "Expected '='");
+    out.min = expression();
+    consume(Tok_To, "Expected 'to'");
+    out.max = expression();
+    block(out.block, Tok_Next);
+    Token iteratorCheck = consume(Tok_Identifier, "Expected iterator name");
+    // we don't do many checks at parse time but if this doesn't
+    // happen here we have to store both the first and last iterator
+    // for the checker - seems pointless when on a good day they'll
+    // be identical.
+    if (!(
+        out.iterator.length == iteratorCheck.length &&
+        strncmp(out.iterator.start, iteratorCheck.start, iteratorCheck.length) == 0
+    )) {
+        panic("Differing iterator names!");
+    }
+
+    return out;
+}
+
+static WhileStmt while_() {
+    WhileStmt out;
+
+    INIT(out.block->declarations);
+
+    consume(Tok_While, "Expected 'while'");
+    out.condition = expression();
+    block(out.block, Tok_EndWhile);
+
+    return out;
+}
+
+static DoStmt do_() {
+    DoStmt out;
+
+    INIT(out.block->declarations);
+
+    consume(Tok_Do, "Expected 'do'");
+    block(out.block, Tok_Until);
+    out.condition = expression();
+
+    return out;
+}
+
+// this is what happens when you mistakenly think including
+// "elseif" in the specification is a good idea
+static IfStmt if_() {
+    IfStmt out;
+
+    INIT(out.primary.block->declarations);
+    INIT(out.secondary);
+    out.hasElse = false;
+
+    consume(Tok_If, "Expected 'if'");
+    out.primary.condition = expression();
+    consume(Tok_Then, "Expected 'then'");
+    while (!(
+        match(Tok_ElseIf) ||
+        match(Tok_Else) ||
+        match(Tok_EndIf)
+    )) {
+        Declaration currentDecl;
+        currentDecl = declaration();
+        APPEND(out.primary.block->declarations, currentDecl);
+    }
+
+    if (previous().type == Tok_ElseIf) {
+        do {
+            while (!(
+                match(Tok_ElseIf) ||
+                match(Tok_Else) ||
+                match(Tok_EndIf)
+            )) {
+                ConditionalBlock currentBlock;
+                INIT(currentBlock.block->declarations);
+                currentBlock.condition = expression();
+                consume(Tok_Then, "Expected 'then'");
+                while (!(
+                    match(Tok_ElseIf) ||
+                    match(Tok_Else) ||
+                    match(Tok_EndIf)
+                )) {
+                    Declaration currentDecl;
+                    currentDecl = declaration();
+                    APPEND(currentBlock.block->declarations, currentDecl);
+                }
+                APPEND(out.secondary, currentBlock);
+            }
+        } while (previous().type == Tok_ElseIf);
+        
+        if (previous().type == Tok_Else) {
+            out.hasElse = true;
+            INIT(out.else_.block->declarations);
+            out.else_.condition = expression();
+            consume(Tok_Then, "Expected 'then'");
+            block(out.else_.block, Tok_EndIf);
+        }
+    }
+
+
+    return out;
+}
+
+static SwitchStmt switch_() {
+    SwitchStmt out;
+
+    consume(Tok_Switch, "Expected 'switch'");
+    out.expr = expression();
+
+    while (!match(Tok_EndSwitch)) {
+        if (match(Tok_Case)) {
+            ConditionalBlock currentBlock;
+            currentBlock.condition = expression();
+            consume(Tok_Colon, "Expected ':'");
+            while (!(
+                match(Tok_Case) ||
+                match(Tok_Default) ||
+                match(Tok_EndSwitch)
+            )) {
+                // basically the same as if handling
+                // default must come LAST!!!
+                // (no reason other than pedantics x)
+            }
+        }
+    }
+
+    return out;
+}
+
+static ArrayStmt array() {
+    ArrayStmt out;
+
+
+
+    return out;
+}
+
+static Statement statement() {
+    Statement out;
+    // how d'you even go about handling an expr stmt?
+    switch (peek().type) {
+        case Tok_Global:
+            out.tag = Stmt_Global;
+            out.global = global();
+            return out;
+        case Tok_For:
+            out.tag = Stmt_For;
+            out.for_ = for_();
+            return out;
+        case Tok_While:
+            out.tag = Stmt_While;
+            out.while_ = while_();
+            return out;
+        case Tok_Do:
+            out.tag = Stmt_Do;
+            out.do_ = do_();
+            return out;
+        case Tok_If:
+            out.tag = Stmt_If;
+            out.if_ = if_();
+            return out;
+        case Tok_Switch:
+            out.tag = Stmt_Switch;
+            out.switch_ = switch_();
+            return out;
+        case Tok_Array:
+            out.tag = Stmt_Array;
+            out.array = array();
+            return out;
+    }
 }
 
 static Declaration declaration() {
