@@ -88,6 +88,7 @@ static void block(DeclList* block, TokType end) {
 
 // todo: yikes!!!!!!!!!!!
 static FunDecl function() {
+    printf("it is a function :-)\n");
     FunDecl out;
     // todo: cleanup
     INIT(out.params);
@@ -95,7 +96,9 @@ static FunDecl function() {
     consume(Tok_Function, "Expected 'function'");
     out.name = consume(Tok_Identifier, "Expected function name");
     params(out.params);
+    printf("asdasdsad\n");
     while (!match(Tok_EndFunction)) {
+        printf("Eeeeeeeeeeeeeeeeeeee!\n");
         DeclOrReturn currentDOR;
         if (match(Tok_Return)) {
             currentDOR.tag = DOR_return;
@@ -109,6 +112,7 @@ static FunDecl function() {
         }
         APPEND(out.block, currentDOR);
     }
+    printf("da vinky?\n");
     return out;
 }
 

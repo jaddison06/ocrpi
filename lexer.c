@@ -271,10 +271,6 @@ LexOutput lex(char* source) {
         skipWhitespace();
         
         start = current;
-        if (isAtEnd()) {
-            addTok(makeTok(Tok_EOF));
-            break;
-        }
 
         char c = advance();
 
@@ -282,6 +278,8 @@ LexOutput lex(char* source) {
         else if (isDigit(c)) addTok(number());
         else addTok(symbol(c));
     }
+
+    addTok(makeTok(Tok_EOF));
 
     return (LexOutput){
         .toks = toks,
