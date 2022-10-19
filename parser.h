@@ -13,7 +13,7 @@ typedef struct {
 DECL_VEC(ParseError, ParseErrList)
 
 typedef struct Expression Expression;
-typedef struct Scope Scope;
+typedef struct DeclList DeclList;
 
 typedef struct {
 
@@ -59,12 +59,12 @@ typedef struct {
     Token iterator;
     Expression min;
     Expression max;
-    Scope* block;
+    DeclList* block;
 } ForStmt;
 
 typedef struct {
     Expression condition;
-    Scope* block;
+    DeclList* block;
 } ConditionalBlock;
 
 typedef ConditionalBlock WhileStmt;
@@ -85,7 +85,7 @@ typedef struct {
     Expression expr;
     SwitchCaseList cases;
     bool hasDefault;
-    Scope* default_;
+    DeclList* default_;
 } SwitchStmt;
 
 DECL_VEC(Expression, ArrayDimensions)
@@ -121,15 +121,25 @@ typedef struct {
 DECL_VEC(Parameter, ParamList)
 
 typedef struct {
+    enum { DOR_decl, DOR_return } tag;
+    union {
+        Declaration declaration;
+        Expression return_;
+    };
+} DeclOrReturn;
+
+DECL_VEC(DeclOrReturn, FuncDeclList)
+
+typedef struct {
     Token name;
     ParamList params;
-    Scope* block;
+    FuncDeclList block;
 } FunDecl;
 
 typedef struct {
     Token name;
     ParamList params;
-    Scope* block;
+    DeclList* block;
 } ProcDecl;
 
 typedef struct {
@@ -146,14 +156,15 @@ typedef struct {
     };
 } Declaration;
 
-DECL_VEC(Declaration, DeclList)
+DECL_VEC_NO_TYPEDEF(Declaration, DeclList)
 
-struct Scope {
-    DeclList declarations;
-};
+#define DECL_LIST_INIT(dl) do { \
+    dl = malloc(sizeof(DeclList)); \
+    INIT(dl); \
+} while (0)
 
 typedef struct {
-    Scope ast;
+    DeclList ast;
     ParseErrList errors;
 } ParseOutput;
 

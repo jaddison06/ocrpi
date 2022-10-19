@@ -29,6 +29,11 @@
     int len, cap; \
 } name;
 
+#define DECL_VEC_NO_TYPEDEF(type, name) struct name { \
+    type* root; \
+    int len, cap; \
+};
+
 static void _append(void** vec, void* item, size_t size, int* currentLength, int* currentCapacity) {
     if (*currentLength == *currentCapacity) {
         *vec = realloc(*vec, *currentCapacity * size * 2);
