@@ -15,7 +15,19 @@ static char* module;
 #define expectStr(expression, expected) _expectStr(expression, #expression, expected)
 #define expectNStr(expression, length, expected) _expectNStr(expression, #expression, length, expected)
 
+static bool _allPassed = true;
+static bool _exitRegistered = false;
+
+static void _onExit() {
+    if (_allPassed) printf("\n ! \033[0;32mAll tests passed!! <333333\033[0m\n");
+}
+
 static void _expect(bool expression, char* expressionString) {
+    if (!_exitRegistered) {
+        atexit(_onExit);
+        _exitRegistered = true;
+    }
+
     static char* oldModule = NULL;
     static int id;
     if (
@@ -28,10 +40,11 @@ static void _expect(bool expression, char* expressionString) {
     }
 
     if (!expression) {
-        printf("\033[0;31mTest %i (%s) failed\033[0m\n", id++, expressionString);
+        _allPassed = false;
+        printf(" ! \033[0;31mTest %i (%s) failed :(\033[0m\n", id++, expressionString);
         exit(70);
     } else {
-        printf("\033[0;32mTest %i passed\033[0m\n", id++);
+        printf("\033[0;32m<3 Test %i passed\033[0m\n", id++);
     }
 }
 
