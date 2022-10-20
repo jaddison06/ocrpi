@@ -69,11 +69,9 @@ static Parameter param() {
 static void params(ParamList* out) {
     consume(Tok_LParen, "Expected '('");
     if (!match(Tok_RParen)) {
-        Parameter currentParam = param();
-        APPEND(*out, currentParam);
+        APPEND(*out, param());
         while (match(Tok_Comma)) {
-            currentParam = param();
-            APPEND(*out, currentParam);
+            APPEND(*out, param());
         }
     }
     consume(Tok_RParen, "Expected ')'");
@@ -81,12 +79,10 @@ static void params(ParamList* out) {
 
 static void block(DeclList* block, TokType end) {
     while (!match(end)) {
-        Declaration currentDecl = declaration();
-        APPEND(*block, currentDecl);
+        APPEND(*block, declaration());
     }
 }
 
-// todo: yikes!!!!!!!!!!!
 static FunDecl function() {
     FunDecl out;
     // todo: cleanup
@@ -206,8 +202,7 @@ static IfStmt if_() {
         match(Tok_Else) ||
         match(Tok_EndIf)
     )) {
-        Declaration currentDecl = declaration();
-        APPEND(*out.primary.block, currentDecl);
+        APPEND(*out.primary.block, declaration());
     }
 
     if (previous().type == Tok_ElseIf) {
@@ -226,8 +221,7 @@ static IfStmt if_() {
                     match(Tok_Else) ||
                     match(Tok_EndIf)
                 )) {
-                    Declaration currentDecl = declaration();
-                    APPEND(*currentBlock.block, currentDecl);
+                    APPEND(*currentBlock.block, declaration());
                 }
                 APPEND(out.secondary, currentBlock);
             }
@@ -267,8 +261,7 @@ static SwitchStmt switch_() {
                 match(Tok_Default) ||
                 match(Tok_EndSwitch)
             )) {
-                Declaration currentDecl = declaration();
-                APPEND(*currentBlock.block, currentDecl);
+                APPEND(*currentBlock.block, declaration());
             }
             APPEND(out.cases, currentBlock);
         } else if (match(Tok_Default)) {
@@ -279,8 +272,7 @@ static SwitchStmt switch_() {
             // update when we (eventually) figure out
             // isAtEnd checks everywhere
             while (!match(Tok_EndSwitch)) {
-                Declaration currentDecl = declaration();
-                APPEND(*out.default_, currentDecl);
+                APPEND(*out.default_, declaration());
             }
         }
     }
@@ -296,11 +288,9 @@ static ArrayStmt array() {
     consume(Tok_Array, "Expected 'array'");
     out.name = consume(Tok_Identifier, "Expected array name");
     consume(Tok_LSquare, "Expected '['");
-    Expression currentExpr = expression();
-    APPEND(out.dimensions, currentExpr);
+    APPEND(out.dimensions, expression());
     while (match(Tok_Comma)) {
-        currentExpr = expression();
-        APPEND(out.dimensions, currentExpr);
+        APPEND(out.dimensions, expression());
     }
 
     consume(Tok_RSquare, "Expected ']'");
@@ -374,8 +364,7 @@ ParseOutput parse(LexOutput lo) {
 
     Declaration newDecl;
     while (!isAtEnd()) {
-        newDecl = declaration();
-        APPEND(out.ast, newDecl);
+        APPEND(out.ast, declaration());
     }
 
     return out;

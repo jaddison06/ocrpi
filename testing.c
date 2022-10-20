@@ -36,7 +36,7 @@ static void _expect(bool expression, char* expressionString) {
     ) {
         oldModule = module;
         id = 1;
-        printf("\nTesting module '%s':\n", module);
+        printf("\n ! Testing module '%s':\n", module);
     }
 
     if (!expression) {
@@ -44,7 +44,7 @@ static void _expect(bool expression, char* expressionString) {
         printf(" ! \033[0;31mTest %i (%s) failed :(\033[0m\n", id++, expressionString);
         exit(70);
     } else {
-        printf("\033[0;32m<3 Test %i passed\033[0m\n", id++);
+        printf("<3 \033[0;32mTest %i passed\033[0m\n", id++);
     }
 }
 

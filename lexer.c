@@ -249,19 +249,6 @@ static Token symbol(char c) {
 LexOutput lex(char* source) {
     start = current = source;
 
-// workaround for my horrible macro being unable to append literals to an array
-    Token newTok;
-    LexError newErr;
-#define addTok(tok) do { \
-    newTok = tok; \
-    APPEND(toks, newTok); \
-} while (0)
-
-#define addErr(err) do { \
-    newErr = err; \
-    APPEND(errors, newErr); \
-} while(0)
-
     TokList toks;
     LexErrList errors;
     INIT(toks);
@@ -274,12 +261,12 @@ LexOutput lex(char* source) {
 
         char c = advance();
 
-        if (isAlpha(c)) addTok(identifier());
-        else if (isDigit(c)) addTok(number());
-        else addTok(symbol(c));
+        if (isAlpha(c)) APPEND(toks, identifier());
+        else if (isDigit(c)) APPEND(toks, number());
+        else APPEND(toks, symbol(c));
     }
 
-    addTok(makeTok(Tok_EOF));
+    APPEND(toks, makeTok(Tok_EOF));
 
     return (LexOutput){
         .toks = toks,
