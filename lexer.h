@@ -27,6 +27,7 @@ typedef struct {
     TokType type;
     char* start;
     int length;
+    int line, col;
 } Token;
 
 typedef struct {
@@ -42,6 +43,11 @@ typedef struct {
     TokList toks;
     LexErrList errors;
 } LexOutput;
+
+// ALLOCATES!
+//
+// Copy token contents into a standalone, null-terminated string
+char* tokText(Token tok);
 
 void destroyLexOutput(LexOutput lo);
 LexOutput lex(char* source);

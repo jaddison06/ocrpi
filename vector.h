@@ -34,6 +34,9 @@
 } while(0)
 
 // new and improved! can take an rvalue - no need to pass in temporary variables!!
+//
+// when passing struct literals w/ multiple members put BRACKETS around them - i know
+// what you mean but the precompiler doesn't :(
 #define APPEND(vec, item) do { \
     *(vec).elemTempStorage = (item); \
     _append((void**)&((vec).root), (vec).elemTempStorage, sizeof(*(vec).elemTempStorage), &(vec).len, &(vec).cap); \

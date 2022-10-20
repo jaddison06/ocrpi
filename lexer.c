@@ -5,6 +5,8 @@
 
 static char* start;
 static char* current;
+static int line;
+static int col;
 
 void destroyLexOutput(LexOutput lo) {
     DESTROY(lo.toks);
@@ -16,6 +18,7 @@ static bool isAtEnd() {
 }
 
 static char advance() {
+    col++;
     return *current++;
 }
 
@@ -31,7 +34,7 @@ static char peekNext() {
 static bool match(char expected) {
     if (isAtEnd()) return false;
     if (peek() != expected) return false;
-    current++;
+    advance();
     return true;
 }
 
@@ -52,8 +55,12 @@ static void skipWhitespace() {
             case ' ':
             case '\r':
             case '\t':
-            case '\n':
                 advance();
+                break;
+            case '\n':
+                line++;
+                advance();
+                col = 1;
                 break;
             case '/':
                 if (peekNext() == '/') {
@@ -70,8 +77,21 @@ static inline Token makeTok(TokType type) {
     return (Token) {
         .type = type,
         .start = start,
-        .length = current - start
+        .length = current - start,
+        .line = line,
+        .col = col - (current - start)
     };
+    // Token out = (Token) {
+    //     .type = type,
+    //     .start = start,
+    //     .length = current - start,
+    //     .line = line,
+    //     .col = col - (current - start)
+    // };
+    // char* text = tokText(out);
+    // printf("'%s' at line %i, column %i\n", text, out.line, out.col);
+    // free(text);
+    // return out;
 }
 
 static TokType checkKeyword(int kwStart, char* rest, TokType type) {
@@ -248,6 +268,8 @@ static Token symbol(char c) {
 
 LexOutput lex(char* source) {
     start = current = source;
+    line = 1;
+    col = 1;
 
     TokList toks;
     LexErrList errors;
@@ -272,4 +294,11 @@ LexOutput lex(char* source) {
         .toks = toks,
         .errors = errors
     };
+}
+
+char* tokText(Token tok) {
+    char* out = malloc(tok.length + 1);
+    memcpy(out, tok.start, tok.length);
+    out[tok.length] = '\0';
+    return out;
 }

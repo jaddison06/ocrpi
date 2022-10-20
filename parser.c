@@ -1,13 +1,15 @@
 #include "parser.h"
 
 int current = 0;
+Token* toks;
 
 static void panic(char* msg) {
-    printf("\x1b[31m%s\x1b[0m (@ %i)\n", msg, current);
+    Token errorTok = toks[current];
+    char* text = tokText(errorTok);
+    printf("Parse error at token #%i (line %i, column %i)\n'%s':\n\x1b[31m%s\x1b[0m\n", current + 1, errorTok.line, errorTok.col, text, msg);
+    free(text);
     exit(-1);
 }
-
-Token* toks;
 
 static inline Token previous() {
     // todo: sexier way of handling this?
