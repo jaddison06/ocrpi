@@ -79,6 +79,8 @@ static inline Token makeTok(TokType type) {
         .start = start,
         .length = current - start,
         .line = line,
+        // todo: does this work for multiline tokens? how do we even
+        // parse multiline tokens??????
         .col = col - (current - start)
     };
     // Token out = (Token) {
@@ -288,7 +290,13 @@ LexOutput lex(char* source) {
         else APPEND(toks, symbol(c));
     }
 
-    APPEND(toks, makeTok(Tok_EOF));
+    APPEND(toks, ((Token){
+        .type = Tok_EOF,
+        .start = current,
+        .length = 0,
+        .line = line,
+        .col = col - (current - start)
+    }));
 
     return (LexOutput){
         .toks = toks,
