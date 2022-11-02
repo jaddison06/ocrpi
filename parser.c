@@ -44,11 +44,138 @@ static Token consume(TokType type, char* message) {
     panic(message);
 }
 
-// forward decls
+// forward decl
 static Declaration declaration();
 
-static Expression expression() {
+// malloc & get a pointer to a locally held expression
+static inline Expression* copyExpr(Expression expr) {
+    Expression* new = malloc(sizeof(Expression));
+    memcpy(new, &expr, sizeof(Expression));
+    return new;
+}
 
+static Expression call() {
+
+}
+
+static Expression unary() {
+    if (
+        match(Tok_Not) ||
+        match(Tok_Minus) ||
+        match(Tok_New)
+    ) {
+        return (Expression){
+            .tag = Expr_Unary,
+            .unary = (UnaryExpr){
+                .operator = previous(),
+                .operand = copyExpr(unary())
+            }
+        };
+    }
+    return call();
+}
+
+static Expression factor() {
+    Expression out = unary();
+    while (match(Tok_Star) || match(Tok_Slash)) {
+        out = (Expression){
+            .tag = Expr_Binary,
+            .binary = (BinaryExpr) {
+                .a = copyExpr(out),
+                .b = copyExpr(unary()),
+                .operator = previous()
+            }
+        };
+    }
+    return out;
+}
+
+static Expression term() {
+    Expression out = factor();
+    while (match(Tok_Plus) || match(Tok_Minus)) {
+        out = (Expression){
+            .tag = Expr_Binary,
+            .binary = (BinaryExpr) {
+                .a = copyExpr(out),
+                .b = copyExpr(factor()),
+                .operator = previous()
+            }
+        };
+    }
+    return out;
+}
+
+static Expression comparison() {
+    Expression out = term();
+    while (
+        match(Tok_Less) ||
+        match(Tok_LessEqual) ||
+        match(Tok_Greater) ||
+        match(Tok_GreaterEqual)
+    ) {
+        out = (Expression){
+            .tag = Expr_Binary,
+            .binary = (BinaryExpr) {
+                .a = copyExpr(out),
+                .b = copyExpr(term()),
+                .operator = previous()
+            }
+        };
+    }
+    return out;
+}
+
+static Expression equality() {
+    Expression out = comparison();
+    while (match(Tok_EqualEqual) || match(Tok_BangEqual)) {
+        out = (Expression){
+            .tag = Expr_Binary,
+            .binary = (BinaryExpr) {
+                .a = copyExpr(out),
+                .b = copyExpr(comparison()),
+                .operator = previous()
+            }
+        };
+    }
+    return out;
+}
+
+static Expression logicAnd() {
+    Expression out = equality();
+    while (match(Tok_And)) {
+        out = (Expression){
+            .tag = Expr_Binary,
+            .binary = (BinaryExpr) {
+                .a = copyExpr(out),
+                .b = copyExpr(equality()),
+                .operator = previous()
+            }
+        };
+    }
+    return out;
+}
+
+static Expression logicOr() {
+    Expression out = logicAnd();
+    while (match(Tok_Or)) {
+        out = (Expression){
+            .tag = Expr_Binary,
+            .binary = (BinaryExpr) {
+                .a = copyExpr(out),
+                .b = copyExpr(logicAnd()),
+                .operator = previous()
+            }
+        };
+    }
+    return out;
+}
+
+static Expression assignment() {
+    
+}
+
+static Expression expression() {
+    return assignment();
 }
 
 static inline ParamPassMode passMode() {

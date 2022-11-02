@@ -17,11 +17,13 @@ typedef struct Declaration Declaration;
 typedef struct DeclList DeclList;
 
 typedef struct {
-
+    Token operator;
+    Expression* operand;
 } UnaryExpr;
 
 typedef struct {
-
+    Token operator;
+    Expression* a, * b;
 } BinaryExpr;
 
 typedef struct {
