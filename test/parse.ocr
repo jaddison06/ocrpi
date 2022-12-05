@@ -1,4 +1,4 @@
 function doSomething(a, b: byVal, c: byRef)
-    // no expressions yet so there's a limited amount we can do tbf
     1 + 2
+    super.method(b, c, d[3, 4] * 5)
 endfunction
