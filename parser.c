@@ -46,6 +46,7 @@ static Token consume(TokType type, char* message) {
 
 // forward decl
 static Declaration declaration();
+static Expression expression();
 
 // malloc & get a pointer to a locally held expression
 static inline Expression* copyExpr(Expression expr) {
@@ -54,8 +55,90 @@ static inline Expression* copyExpr(Expression expr) {
     return new;
 }
 
-static Expression call() {
+static Expression primary() {
+    if (!(
+        match(Tok_Self) ||
+        match(Tok_StringLit) ||
+        match(Tok_IntLit) ||
+        match(Tok_FloatLit) ||
+        match(Tok_Identifier)
+    )) {
+        panic("Unexpected token!");
+    }
+    return (Expression){
+        .tag = primary,
+        .primary = previous()
+    };
+}
 
+static Expression grouping() {
+    if (match(Tok_LParen)) {
+        return (Expression){
+            .tag = Expr_Grouping,
+            .grouping = copyExpr(expression())
+        };
+    }
+    return primary();
+}
+
+static Expression super() {
+    Expression out;
+    if (match(Tok_Super)) {
+        consume(Tok_Dot, "Expected '.' after 'super'");
+        return (Expression){
+            .tag = Expr_Super,
+            .super = (SuperExpr){
+                .memberName = consume(Tok_Identifier, "Expected an identifier")
+            }
+        };
+    }
+
+    return grouping();
+}
+
+static ExprList argList() {
+    ExprList out;
+    INIT(out);
+    APPEND(out, expression());
+    while (match(Tok_Comma)) {
+        APPEND(out, expression());
+    }
+    return out;
+}
+
+static Expression call() {
+    Expression out = super();
+    while (
+        match(Tok_LParen) ||
+        match(Tok_LSquare) ||
+        match(Tok_Dot)
+    ) {
+        out = (Expression){
+            .tag = Expr_Call,
+            .call = (CallExpr){
+                .callee = copyExpr(out)
+            }
+        };
+        switch (previous().type) {
+            case Tok_LParen: {
+                out.call.tag = Call_Call;
+                out.call.arguments = argList();
+                consume(Tok_RParen, "Expected ')'");
+            }
+            case Tok_LSquare: {
+                out.call.tag = Call_Array;
+                out.call.arguments = argList();
+                consume(Tok_RSquare, "Expected ']'");
+            }
+            case Tok_Dot: {
+                out.call.tag = Call_GetMember;
+                out.call.memberName = consume(Tok_Identifier, "Expected an identifier");
+                break;
+            }
+        }
+    }
+
+    return out;
 }
 
 static Expression unary() {

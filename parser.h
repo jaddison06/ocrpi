@@ -16,6 +16,8 @@ typedef struct Expression Expression;
 typedef struct Declaration Declaration;
 typedef struct DeclList DeclList;
 
+DECL_VEC(Expression, ExprList)
+
 typedef struct {
     Token operator;
     Expression* operand;
@@ -27,11 +29,16 @@ typedef struct {
 } BinaryExpr;
 
 typedef struct {
-
+    Expression* callee;
+    enum { Call_Call, Call_Array, Call_GetMember} tag;
+    union {
+        ExprList arguments;
+        Token memberName;
+    };
 } CallExpr;
 
 typedef struct {
-
+    Token memberName;
 } SuperExpr;
 
 typedef Expression* GroupingExpr;
