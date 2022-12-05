@@ -1,7 +1,5 @@
 #include "parser.h"
 
-#include "backtrace.h"
-
 int current = 0;
 Token* toks;
 
@@ -10,7 +8,6 @@ static void panic(char* msg) {
     char* text = tokText(errorTok);
     printf("Parse error at token #%i (line %i, column %i)\n'%s':\n\x1b[31m%s\x1b[0m\n", current + 1, errorTok.line, errorTok.col, text, msg);
     free(text);
-    BACKTRACE(8);
     exit(-1);
 }
 
