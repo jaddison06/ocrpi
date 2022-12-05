@@ -2,7 +2,9 @@
 
 #pragma once
 
-#if BACKTRACE_ENABLED
+#include "common.h"
+
+#if OCRPI_DEBUG
 
 #include <execinfo.h>
 #include <stdio.h>
@@ -23,7 +25,7 @@
         free(strings); \
     } while(false)
 
-#else // BACKTRACE_ENABLED
+#else // OCRPI_DEBUG
 
 #define BACKTRACE(length)
 
