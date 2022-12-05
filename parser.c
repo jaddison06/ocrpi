@@ -1,36 +1,39 @@
 #include "parser.h"
 
+#include "backtrace.h"
+
 int current = 0;
 Token* toks;
 
-static void panic(char* msg) {
+STATIC void panic(char* msg) {
     Token errorTok = toks[current];
     char* text = tokText(errorTok);
     printf("Parse error at token #%i (line %i, column %i)\n'%s':\n\x1b[31m%s\x1b[0m\n", current + 1, errorTok.line, errorTok.col, text, msg);
     free(text);
+    BACKTRACE(8);
     exit(-1);
 }
 
-static inline Token previous() {
+STATIC INLINE Token previous() {
     // todo: sexier way of handling this?
     if (current == 0) panic("Can't have previous token from position 0!");
     return toks[current - 1];
 }
 
-static inline Token peek() {
+STATIC INLINE Token peek() {
     return toks[current];
 }
 
-static inline Token advance() {
+STATIC INLINE Token advance() {
     return toks[current++];
 }
 
-static bool isAtEnd() {
+STATIC bool isAtEnd() {
     return peek().type == Tok_EOF;
 }
 
 // todo: refactor w/ varargs to allow matching on multiple types
-static bool match(TokType type) {
+STATIC bool match(TokType type) {
     if (isAtEnd()) return false;
     if (peek().type == type) {
         advance();
@@ -39,23 +42,23 @@ static bool match(TokType type) {
     return false;
 }
 
-static Token consume(TokType type, char* message) {
+STATIC Token consume(TokType type, char* message) {
     if (peek().type == type) return advance();
     panic(message);
 }
 
 // forward decl
-static Declaration declaration();
-static Expression expression();
+STATIC Declaration declaration();
+STATIC Expression expression();
 
 // malloc & get a pointer to a locally held expression
-static inline Expression* copyExpr(Expression expr) {
+STATIC INLINE Expression* copyExpr(Expression expr) {
     Expression* new = malloc(sizeof(Expression));
     memcpy(new, &expr, sizeof(Expression));
     return new;
 }
 
-static Expression primary() {
+STATIC Expression primary() {
     if (!(
         match(Tok_Self) ||
         match(Tok_StringLit) ||
@@ -71,7 +74,7 @@ static Expression primary() {
     };
 }
 
-static Expression grouping() {
+STATIC Expression grouping() {
     if (match(Tok_LParen)) {
         return (Expression){
             .tag = Expr_Grouping,
@@ -81,7 +84,7 @@ static Expression grouping() {
     return primary();
 }
 
-static Expression super() {
+STATIC Expression super() {
     Expression out;
     if (match(Tok_Super)) {
         consume(Tok_Dot, "Expected '.' after 'super'");
@@ -96,7 +99,7 @@ static Expression super() {
     return grouping();
 }
 
-static ExprList argList() {
+STATIC ExprList argList() {
     ExprList out;
     INIT(out);
     APPEND(out, expression());
@@ -106,7 +109,7 @@ static ExprList argList() {
     return out;
 }
 
-static Expression call() {
+STATIC Expression call() {
     Expression out = super();
     while (
         match(Tok_LParen) ||
@@ -141,7 +144,7 @@ static Expression call() {
     return out;
 }
 
-static Expression unary() {
+STATIC Expression unary() {
     if (
         match(Tok_Not) ||
         match(Tok_Minus) ||
@@ -158,7 +161,7 @@ static Expression unary() {
     return call();
 }
 
-static Expression factor() {
+STATIC Expression factor() {
     Expression out = unary();
     while (match(Tok_Star) || match(Tok_Slash)) {
         out = (Expression){
@@ -173,7 +176,7 @@ static Expression factor() {
     return out;
 }
 
-static Expression term() {
+STATIC Expression term() {
     Expression out = factor();
     while (match(Tok_Plus) || match(Tok_Minus)) {
         out = (Expression){
@@ -188,7 +191,7 @@ static Expression term() {
     return out;
 }
 
-static Expression comparison() {
+STATIC Expression comparison() {
     Expression out = term();
     while (
         match(Tok_Less) ||
@@ -208,7 +211,7 @@ static Expression comparison() {
     return out;
 }
 
-static Expression equality() {
+STATIC Expression equality() {
     Expression out = comparison();
     while (match(Tok_EqualEqual) || match(Tok_BangEqual)) {
         out = (Expression){
@@ -223,7 +226,7 @@ static Expression equality() {
     return out;
 }
 
-static Expression logicAnd() {
+STATIC Expression logicAnd() {
     Expression out = equality();
     while (match(Tok_And)) {
         out = (Expression){
@@ -238,7 +241,7 @@ static Expression logicAnd() {
     return out;
 }
 
-static Expression logicOr() {
+STATIC Expression logicOr() {
     Expression out = logicAnd();
     while (match(Tok_Or)) {
         out = (Expression){
@@ -253,7 +256,7 @@ static Expression logicOr() {
     return out;
 }
 
-static Expression assignment() {
+STATIC Expression assignment() {
     Expression out = logicOr();
     if (match(Tok_Equal)) {
         out = (Expression){
@@ -268,17 +271,17 @@ static Expression assignment() {
     return out;
 }
 
-static Expression expression() {
+STATIC Expression expression() {
     return assignment();
 }
 
-static inline ParamPassMode passMode() {
+STATIC INLINE ParamPassMode passMode() {
     if (match(Tok_ByRef)) return Param_byRef;
     else if (match(Tok_ByVal)) return Param_byVal;
     panic("Expected 'byRef' or 'byVal'");
 }
 
-static Parameter param() {
+STATIC Parameter param() {
     Parameter out;
     out.name = consume(Tok_Identifier, "Expected parameter name");
     if (match(Tok_Colon)) {
@@ -289,7 +292,7 @@ static Parameter param() {
     return out;
 }
 
-static void params(ParamList* out) {
+STATIC void params(ParamList* out) {
     consume(Tok_LParen, "Expected '('");
     if (!match(Tok_RParen)) {
         APPEND(*out, param());
@@ -300,13 +303,13 @@ static void params(ParamList* out) {
     consume(Tok_RParen, "Expected ')'");
 }
 
-static void block(DeclList* block, TokType end) {
+STATIC void block(DeclList* block, TokType end) {
     while (!match(end)) {
         APPEND(*block, declaration());
     }
 }
 
-static FunDecl function() {
+STATIC FunDecl function() {
     FunDecl out;
     // todo: cleanup
     INIT(out.params);
@@ -331,7 +334,7 @@ static FunDecl function() {
     return out;
 }
 
-static ProcDecl procedure() {
+STATIC ProcDecl procedure() {
     ProcDecl out;
     INIT(out.params);
     DECL_LIST_INIT(out.block);
@@ -342,11 +345,11 @@ static ProcDecl procedure() {
     return out;
 }
 
-static ClassDecl class() {
+STATIC ClassDecl class() {
     panic("not a thing yet :(");
 }
 
-static GlobalStmt global() {
+STATIC GlobalStmt global() {
     GlobalStmt out;
 
     consume(Tok_Global, "Expected 'global'");
@@ -357,7 +360,7 @@ static GlobalStmt global() {
     return out;
 }
 
-static ForStmt for_() {
+STATIC ForStmt for_() {
     ForStmt out;
 
     DECL_LIST_INIT(out.block);
@@ -384,7 +387,7 @@ static ForStmt for_() {
     return out;
 }
 
-static WhileStmt while_() {
+STATIC WhileStmt while_() {
     WhileStmt out;
 
     DECL_LIST_INIT(out.block);
@@ -396,7 +399,7 @@ static WhileStmt while_() {
     return out;
 }
 
-static DoStmt do_() {
+STATIC DoStmt do_() {
     DoStmt out;
 
     DECL_LIST_INIT(out.block);
@@ -410,7 +413,7 @@ static DoStmt do_() {
 
 // this is what happens when you mistakenly think including
 // "elseif" in the specification is a good idea
-static IfStmt if_() {
+STATIC IfStmt if_() {
     IfStmt out;
 
     DECL_LIST_INIT(out.primary.block);
@@ -462,7 +465,7 @@ static IfStmt if_() {
     return out;
 }
 
-static SwitchStmt switch_() {
+STATIC SwitchStmt switch_() {
     SwitchStmt out;
 
     INIT(out.cases);
@@ -503,7 +506,7 @@ static SwitchStmt switch_() {
     return out;
 }
 
-static ArrayStmt array() {
+STATIC ArrayStmt array() {
     ArrayStmt out;
     
     INIT(out.dimensions);
@@ -521,7 +524,7 @@ static ArrayStmt array() {
     return out;
 }
 
-static Statement statement() {
+STATIC Statement statement() {
     Statement out;
     // how d'you even go about handling an expr stmt?
     switch (peek().type) {
@@ -560,7 +563,7 @@ static Statement statement() {
     }
 }
 
-static Declaration declaration() {
+STATIC Declaration declaration() {
     Declaration out;
     switch (peek().type) {
         case Tok_Function:

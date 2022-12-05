@@ -27,6 +27,7 @@ def all_with_extension(*exts: str) -> list[str]:
     return out
 
 COMPILER = 'gcc'
+DEBUG_DEFINES: dict[str, str] = {'OCRPI_BACKTRACE': '1'}
 LIBS: dict[str, list[str]] = {}
 EXECUTABLE = 'ocrpi'
 SOURCE_EXTS = ['.c']
@@ -64,6 +65,11 @@ def main():
     objects: list[str] = []
     debug_objects: list[str] = []
 
+    defines_str = ''
+    for k, v in DEBUG_DEFINES.items():
+        defines_str += f'-D {k}={v} '
+    defines_str = defines_str.strip()
+
     for file in source_files:
         dirname = 'build/objects/' + path.dirname(file)
         base = path.splitext(file)[0]
@@ -74,7 +80,7 @@ def main():
         dependencies += COMMON_DEPENDENCIES
 
         makefile += makefile_item(obj_name,       dependencies, [fs_cmd('mkdir', dirname), f'{COMPILER} -c {file} -I. -o {obj_name}'])
-        makefile += makefile_item(debug_obj_name, dependencies, [fs_cmd('mkdir', dirname), f'{COMPILER} -g -c {file} -I. -o {debug_obj_name}'])
+        makefile += makefile_item(debug_obj_name, dependencies, [fs_cmd('mkdir', dirname), f'{COMPILER} -g {defines_str} -c {file} -I. -o {debug_obj_name}'])
 
         objects.append(obj_name)
         debug_objects.append(debug_obj_name)
@@ -95,7 +101,7 @@ def main():
     ) + makefile_item(
         'debug',
         debug_objects,
-        [f'{COMPILER} -g {" ".join(debug_objects)} -o {executable}{libs_str}']
+        [f'{COMPILER} -g -rdynamic {" ".join(debug_objects)} -o {executable}{libs_str}']
     ) + makefile_item(
         'run',
         ['all'],
