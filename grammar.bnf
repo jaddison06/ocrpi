@@ -43,6 +43,7 @@ arrayStmt ::= "array" IDENTIFIER "[" expression ("," expression)* "]"
 
 expression ::= assignment
 
+# ?? can't this just be a normal cascading rule?
 assignment ::= ((call ".")? IDENTIFIER "=" assignment) | logicOr
 logicOr ::= logicAnd ("OR" logicAnd)*
 logicAnd ::= equality ("AND" equality)*

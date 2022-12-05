@@ -1,3 +1,4 @@
 function doSomething(a, b: byVal, c: byRef)
     // no expressions yet so there's a limited amount we can do tbf
+    1 + 2
 endfunction

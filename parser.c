@@ -66,7 +66,7 @@ static Expression primary() {
         panic("Unexpected token!");
     }
     return (Expression){
-        .tag = primary,
+        .tag = Expr_Primary,
         .primary = previous()
     };
 }
@@ -163,7 +163,7 @@ static Expression factor() {
     while (match(Tok_Star) || match(Tok_Slash)) {
         out = (Expression){
             .tag = Expr_Binary,
-            .binary = (BinaryExpr) {
+            .binary = (BinaryExpr){
                 .a = copyExpr(out),
                 .b = copyExpr(unary()),
                 .operator = previous()
@@ -178,7 +178,7 @@ static Expression term() {
     while (match(Tok_Plus) || match(Tok_Minus)) {
         out = (Expression){
             .tag = Expr_Binary,
-            .binary = (BinaryExpr) {
+            .binary = (BinaryExpr){
                 .a = copyExpr(out),
                 .b = copyExpr(factor()),
                 .operator = previous()
@@ -198,7 +198,7 @@ static Expression comparison() {
     ) {
         out = (Expression){
             .tag = Expr_Binary,
-            .binary = (BinaryExpr) {
+            .binary = (BinaryExpr){
                 .a = copyExpr(out),
                 .b = copyExpr(term()),
                 .operator = previous()
@@ -213,7 +213,7 @@ static Expression equality() {
     while (match(Tok_EqualEqual) || match(Tok_BangEqual)) {
         out = (Expression){
             .tag = Expr_Binary,
-            .binary = (BinaryExpr) {
+            .binary = (BinaryExpr){
                 .a = copyExpr(out),
                 .b = copyExpr(comparison()),
                 .operator = previous()
@@ -228,7 +228,7 @@ static Expression logicAnd() {
     while (match(Tok_And)) {
         out = (Expression){
             .tag = Expr_Binary,
-            .binary = (BinaryExpr) {
+            .binary = (BinaryExpr){
                 .a = copyExpr(out),
                 .b = copyExpr(equality()),
                 .operator = previous()
@@ -243,7 +243,7 @@ static Expression logicOr() {
     while (match(Tok_Or)) {
         out = (Expression){
             .tag = Expr_Binary,
-            .binary = (BinaryExpr) {
+            .binary = (BinaryExpr){
                 .a = copyExpr(out),
                 .b = copyExpr(logicAnd()),
                 .operator = previous()
@@ -254,7 +254,18 @@ static Expression logicOr() {
 }
 
 static Expression assignment() {
-    
+    Expression out = logicOr();
+    if (match(Tok_Equal)) {
+        out = (Expression){
+            .tag = Expr_Binary,
+            .binary = (BinaryExpr){
+                .a = copyExpr(out),
+                .b = copyExpr(assignment()),
+                .operator = previous()
+            }
+        };
+    }
+    return out;
 }
 
 static Expression expression() {
@@ -332,7 +343,7 @@ static ProcDecl procedure() {
 }
 
 static ClassDecl class() {
-
+    panic("not a thing yet :(");
 }
 
 static GlobalStmt global() {
@@ -541,6 +552,10 @@ static Statement statement() {
         case Tok_Array:
             out.tag = Stmt_Array;
             out.array = array();
+            return out;
+        default:
+            out.tag = Stmt_Expr;
+            out.expr = expression();
             return out;
     }
 }

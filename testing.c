@@ -115,7 +115,7 @@ void testAll() {
     module = "parser";
     source = readFile("test/parse.ocr");
     lo = lex(source);
-    expect(lo.toks.len == 15);
+    expect(lo.toks.len == 18);
 
     ParseOutput po = parse(lo);
     // general checks
@@ -140,5 +140,19 @@ void testAll() {
     expect(params[2].name.start[0] == 'c');
     expect(params[2].passMode == Param_byRef);
     // contents
-    expect(fun.block.len == 0);
+    expect(fun.block.len == 1);
+    expect(fun.block.root[0].tag == DOR_decl);
+    Declaration* decl = fun.block.root[0].declaration;
+    expect(decl->tag == Decl_Stmt);
+    expect(decl->stmt.tag == Stmt_Expr);
+    expect(decl->stmt.expr.tag = Expr_Binary);
+    BinaryExpr binary = decl->stmt.expr.binary;
+    expect(binary.operator.length == 1);
+    expectNStr(binary.operator.start, 1, "+");
+    expect(binary.a->tag = Expr_Primary);
+    expect(binary.a->primary.length == 1);
+    expectNStr(binary.a->primary.start, 1, "1");
+    expect(binary.b->tag = Expr_Primary);
+    expect(binary.b->primary.length == 1);
+    expectNStr(binary.b->primary.start, 1, "2");
 }

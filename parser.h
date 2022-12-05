@@ -45,7 +45,7 @@ typedef Expression* GroupingExpr;
 typedef Token PrimaryExpr;
 
 struct Expression {
-    enum { Expr_Unary, Expr_Binary, Expr_Call, Expr_Super, Expr_Grouping, Expr_Literal } tag;
+    enum { Expr_Unary, Expr_Binary, Expr_Call, Expr_Super, Expr_Grouping, Expr_Primary } tag;
     union {
         UnaryExpr unary;
         BinaryExpr binary;
@@ -56,9 +56,7 @@ struct Expression {
     };
 };
 
-typedef struct {
-
-} ExprStmt;
+typedef Expression ExprStmt;
 
 typedef struct {
     Token name;
