@@ -122,7 +122,7 @@ void testAll() {
     expect(po.errors.len == 0);
     expect(po.ast.len == 1);
     // function parsed correctly?
-    expect(po.ast.root[0].tag == Decl_Fun);
+    expect(po.ast.root[0].tag == DeclTag_Fun);
     FunDecl fun = po.ast.root[0].fun;
     // name
     expect(fun.name.length == 11);
@@ -145,61 +145,62 @@ void testAll() {
     
     expect(fun.block.root[0].tag == DOR_decl);
     Declaration* declA = fun.block.root[0].declaration;
-    expect(declA->tag == Decl_Stmt);
-    expect(declA->stmt.tag == Stmt_Expr);
-    expect(declA->stmt.expr.tag = Expr_Binary);
+    expect(declA->tag == DeclTag_Stmt);
+    expect(declA->stmt.tag == StmtTag_Expr);
+    expect(declA->stmt.expr.tag = ExprTag_Binary);
     BinaryExpr binary = declA->stmt.expr.binary;
     expect(binary.operator.length == 1);
     expectNStr(binary.operator.start, 1, "+");
-    expect(binary.a->tag = Expr_Primary);
+    expect(binary.a->tag = ExprTag_Primary);
     expect(binary.a->primary.length == 1);
     expectNStr(binary.a->primary.start, 1, "1");
-    expect(binary.b->tag = Expr_Primary);
+    expect(binary.b->tag = ExprTag_Primary);
     expect(binary.b->primary.length == 1);
     expectNStr(binary.b->primary.start, 1, "2");
 
     expect(fun.block.root[1].tag == DOR_decl);
     Declaration* declB = fun.block.root[0].declaration;
-    expect(declB->tag = Decl_Stmt);
-    expect(declB->stmt.tag == Stmt_Expr);
-    expect(declB->stmt.expr.tag == Expr_Call);
+    printf("%s\n", DeclTagToString(declB->tag));
+    expect(declB->tag = DeclTag_Stmt);
+    expect(declB->stmt.tag == StmtTag_Expr);
+    expect(declB->stmt.expr.tag == ExprTag_Call);
     CallExpr call = declB->stmt.expr.call;
     expect(call.tag == Call_Call);
-    expect(call.callee->tag == Expr_Super);
+    expect(call.callee->tag == ExprTag_Super);
     expect(call.callee->super.memberName.length == 6);
     expectNStr(call.callee->super.memberName.start, 6, "method");
     expect(call.arguments.len == 3);
     Expression* args = call.arguments.root;
 
-    expect(args[0].tag == Expr_Primary);
+    expect(args[0].tag == ExprTag_Primary);
     expect(args[0].primary.type == Tok_Identifier);
     expect(args[0].primary.length == 1);
     expectNStr(args[0].primary.start, 1, "b");
 
-    expect(args[1].tag == Expr_Primary);
+    expect(args[1].tag == ExprTag_Primary);
     expect(args[1].primary.type == Tok_Identifier);
     expect(args[1].primary.length == 1);
     expectNStr(args[1].primary.start, 1, "c");
 
-    expect(args[2].tag == Expr_Binary);
+    expect(args[2].tag == ExprTag_Binary);
     BinaryExpr binaryB = args[2].binary;
     expect(binaryB.operator.length == 1);
     expectNStr(binaryB.operator.start, 1, "*");
-    expect(binaryB.a->tag == Expr_Call);
+    expect(binaryB.a->tag == ExprTag_Call);
     CallExpr callB = binaryB.a->call;
     expect(callB.tag == Call_Array);
     expect(callB.arguments.len == 2);
     Expression* argsB = callB.arguments.root;
     
-    expect(argsB[0].tag == Expr_Primary);
+    expect(argsB[0].tag == ExprTag_Primary);
     expect(args[0].primary.length == 1);
     expectNStr(args[0].primary.start, 1, "3");
 
-    expect(argsB[1].tag == Expr_Primary);
+    expect(argsB[1].tag == ExprTag_Primary);
     expect(args[1].primary.length == 1);
     expectNStr(args[1].primary.start, 1, "4");
 
-    expect(binaryB.b->tag == Expr_Primary);
+    expect(binaryB.b->tag == ExprTag_Primary);
     expect(binaryB.b->primary.length == 1);
     expectNStr(binaryB.b->primary.start, 1, "5");
 }

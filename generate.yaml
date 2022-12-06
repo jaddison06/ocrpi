@@ -2,7 +2,24 @@ config:
   out: generated.h
 
 enums:
-  test:
-    - a
-    - b
-    - c
+  ExprTag:
+    - Unary
+    - Binary
+    - Call
+    - Super
+    - Grouping
+    - Primary
+  StmtTag:
+    - Expr
+    - Global
+    - For
+    - While
+    - Do
+    - If
+    - Switch
+    - Array
+  DeclTag:
+    - Stmt
+    - Fun
+    - Proc
+    - Class

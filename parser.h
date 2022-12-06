@@ -2,6 +2,8 @@
 
 #include <stdbool.h>
 
+#include "generated.h"
+
 #include "lexer.h"
 #include "vector.h"
 
@@ -45,7 +47,7 @@ typedef Expression* GroupingExpr;
 typedef Token PrimaryExpr;
 
 struct Expression {
-    enum { Expr_Unary, Expr_Binary, Expr_Call, Expr_Super, Expr_Grouping, Expr_Primary } tag;
+    ExprTag tag;
     union {
         UnaryExpr unary;
         BinaryExpr binary;
@@ -104,7 +106,7 @@ typedef struct {
 } ArrayStmt;
 
 typedef struct {
-    enum { Stmt_Expr, Stmt_Global, Stmt_For, Stmt_While, Stmt_Do, Stmt_If, Stmt_Switch, Stmt_Array } tag;
+    StmtTag tag;
     union {
         ExprStmt expr;
         GlobalStmt global;
@@ -156,7 +158,7 @@ typedef struct {
 } ClassDecl;
 
 struct Declaration {
-    enum { Decl_Stmt, Decl_Fun, Decl_Proc, Decl_Class } tag;
+    DeclTag tag;
     union {
         Statement stmt;
         FunDecl fun;

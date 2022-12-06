@@ -17,9 +17,13 @@ def codegen():
     for name, values in genFile['enums'].items():
         sio.write('typedef enum {\n')
         for i, value in enumerate(values):
-            sio.write(f'    {value} = {i},\n')
+            sio.write(f'    {name}_{value} = {i},\n')
         sio.write(f'}} {name};\n\n')
-        sio.write(f'char* {name}ToString({name} theEnum) {{\n')
+        # todo: funcs in a header aren't ideal but having em static means repetition
+        # of that whole array in the binary??
+        #
+        # gets v inefficient v quickly :(
+        sio.write(f'static char* {name}ToString({name} theEnum) {{\n')
         sio.write('    char* values[] = {')
         for i, value in enumerate(values):
             sio.write(f'"{value}"')

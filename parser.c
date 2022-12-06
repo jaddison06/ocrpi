@@ -70,7 +70,7 @@ STATIC Expression primary() {
         panic("Unexpected token!");
     }
     return (Expression){
-        .tag = Expr_Primary,
+        .tag = ExprTag_Primary,
         .primary = previous()
     };
 }
@@ -78,7 +78,7 @@ STATIC Expression primary() {
 STATIC Expression grouping() {
     if (match(Tok_LParen)) {
         return (Expression){
-            .tag = Expr_Grouping,
+            .tag = ExprTag_Grouping,
             .grouping = copyExpr(expression())
         };
     }
@@ -90,7 +90,7 @@ STATIC Expression super() {
     if (match(Tok_Super)) {
         consume(Tok_Dot, "Expected '.' after 'super'");
         return (Expression){
-            .tag = Expr_Super,
+            .tag = ExprTag_Super,
             .super = (SuperExpr){
                 .memberName = consume(Tok_Identifier, "Expected an identifier")
             }
@@ -118,7 +118,7 @@ STATIC Expression call() {
         match(Tok_Dot)
     ) {
         out = (Expression){
-            .tag = Expr_Call,
+            .tag = ExprTag_Call,
             .call = (CallExpr){
                 .callee = copyExpr(out)
             }
@@ -154,7 +154,7 @@ STATIC Expression unary() {
         match(Tok_New)
     ) {
         return (Expression){
-            .tag = Expr_Unary,
+            .tag = ExprTag_Unary,
             .unary = (UnaryExpr){
                 .operator = previous(),
                 .operand = copyExpr(unary())
@@ -168,7 +168,7 @@ STATIC Expression factor() {
     Expression out = unary();
     while (match(Tok_Star) || match(Tok_Slash)) {
         out = (Expression){
-            .tag = Expr_Binary,
+            .tag = ExprTag_Binary,
             .binary = (BinaryExpr){
                 .a = copyExpr(out),
                 .b = copyExpr(unary()),
@@ -183,7 +183,7 @@ STATIC Expression term() {
     Expression out = factor();
     while (match(Tok_Plus) || match(Tok_Minus)) {
         out = (Expression){
-            .tag = Expr_Binary,
+            .tag = ExprTag_Binary,
             .binary = (BinaryExpr){
                 .a = copyExpr(out),
                 .b = copyExpr(factor()),
@@ -203,7 +203,7 @@ STATIC Expression comparison() {
         match(Tok_GreaterEqual)
     ) {
         out = (Expression){
-            .tag = Expr_Binary,
+            .tag = ExprTag_Binary,
             .binary = (BinaryExpr){
                 .a = copyExpr(out),
                 .b = copyExpr(term()),
@@ -218,7 +218,7 @@ STATIC Expression equality() {
     Expression out = comparison();
     while (match(Tok_EqualEqual) || match(Tok_BangEqual)) {
         out = (Expression){
-            .tag = Expr_Binary,
+            .tag = ExprTag_Binary,
             .binary = (BinaryExpr){
                 .a = copyExpr(out),
                 .b = copyExpr(comparison()),
@@ -233,7 +233,7 @@ STATIC Expression logicAnd() {
     Expression out = equality();
     while (match(Tok_And)) {
         out = (Expression){
-            .tag = Expr_Binary,
+            .tag = ExprTag_Binary,
             .binary = (BinaryExpr){
                 .a = copyExpr(out),
                 .b = copyExpr(equality()),
@@ -248,7 +248,7 @@ STATIC Expression logicOr() {
     Expression out = logicAnd();
     while (match(Tok_Or)) {
         out = (Expression){
-            .tag = Expr_Binary,
+            .tag = ExprTag_Binary,
             .binary = (BinaryExpr){
                 .a = copyExpr(out),
                 .b = copyExpr(logicAnd()),
@@ -263,7 +263,7 @@ STATIC Expression assignment() {
     Expression out = logicOr();
     if (match(Tok_Equal)) {
         out = (Expression){
-            .tag = Expr_Binary,
+            .tag = ExprTag_Binary,
             .binary = (BinaryExpr){
                 .a = copyExpr(out),
                 .b = copyExpr(assignment()),
@@ -532,35 +532,35 @@ STATIC Statement statement() {
     // how d'you even go about handling an expr stmt?
     switch (peek().type) {
         case Tok_Global:
-            out.tag = Stmt_Global;
+            out.tag = StmtTag_Global;
             out.global = global();
             return out;
         case Tok_For:
-            out.tag = Stmt_For;
+            out.tag = StmtTag_For;
             out.for_ = for_();
             return out;
         case Tok_While:
-            out.tag = Stmt_While;
+            out.tag = StmtTag_While;
             out.while_ = while_();
             return out;
         case Tok_Do:
-            out.tag = Stmt_Do;
+            out.tag = StmtTag_Do;
             out.do_ = do_();
             return out;
         case Tok_If:
-            out.tag = Stmt_If;
+            out.tag = StmtTag_If;
             out.if_ = if_();
             return out;
         case Tok_Switch:
-            out.tag = Stmt_Switch;
+            out.tag = StmtTag_Switch;
             out.switch_ = switch_();
             return out;
         case Tok_Array:
-            out.tag = Stmt_Array;
+            out.tag = StmtTag_Array;
             out.array = array();
             return out;
         default:
-            out.tag = Stmt_Expr;
+            out.tag = StmtTag_Expr;
             out.expr = expression();
             return out;
     }
@@ -570,19 +570,19 @@ STATIC Declaration declaration() {
     Declaration out;
     switch (peek().type) {
         case Tok_Function:
-            out.tag = Decl_Fun;
+            out.tag = DeclTag_Fun;
             out.fun = function();
             return out;
         case Tok_Procedure:
-            out.tag = Decl_Proc;
+            out.tag = DeclTag_Proc;
             out.proc = procedure();
             return out;
         case Tok_Class:
-            out.tag = Decl_Class;
+            out.tag = DeclTag_Class;
             out.class = class();
             return out;
         default:
-            out.tag = Decl_Stmt;
+            out.tag = DeclTag_Stmt;
             out.stmt = statement();
             return out;
     }
