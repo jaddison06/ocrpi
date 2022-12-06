@@ -109,9 +109,6 @@ void testAll() {
     expectTok(12, Tok_ByVal);
     expectTok(13, Tok_EOF);
 
-    // destroyLexOutput(lo);
-    // free(source);
-
     module = "parser";
     source = readFile("test/parse.ocr");
     lo = lex(source);
@@ -202,4 +199,9 @@ void testAll() {
     expect(binaryB.b->tag == ExprTag_Primary);
     expect(binaryB.b->primary.length == 1);
     expectNStr(binaryB.b->primary.start, 1, "5");
+
+    module = "checker";
+    source = readFile("test/check.ocr");
+    lo = lex(source);
+    po = parse(lo);
 }

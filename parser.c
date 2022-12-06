@@ -3,7 +3,7 @@
 #include "common.h"
 #include "backtrace.h"
 
-int current = 0;
+int current;
 Token* toks;
 
 STATIC void panic(char* msg) {
@@ -302,8 +302,8 @@ STATIC void params(ParamList* out) {
         while (match(Tok_Comma)) {
             APPEND(*out, param());
         }
+        consume(Tok_RParen, "Expected ')'");
     }
-    consume(Tok_RParen, "Expected ')'");
 }
 
 STATIC void block(DeclList* block, TokType end) {
@@ -589,6 +589,7 @@ STATIC Declaration declaration() {
 }
 
 ParseOutput parse(LexOutput lo) {
+    current = 0;
     toks = lo.toks.root;
 
     ParseOutput out;
