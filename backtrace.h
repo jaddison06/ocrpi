@@ -2,8 +2,6 @@
 
 #pragma once
 
-#include "common.h"
-
 #if defined(OCRPI_BACKTRACE) && defined(__linux__)
 
 #include <execinfo.h>

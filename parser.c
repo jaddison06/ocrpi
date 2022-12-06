@@ -1,5 +1,6 @@
 #include "parser.h"
 
+#include "common.h"
 #include "backtrace.h"
 
 int current = 0;
@@ -127,11 +128,13 @@ STATIC Expression call() {
                 out.call.tag = Call_Call;
                 out.call.arguments = argList();
                 consume(Tok_RParen, "Expected ')'");
+                break;
             }
             case Tok_LSquare: {
                 out.call.tag = Call_Array;
                 out.call.arguments = argList();
                 consume(Tok_RSquare, "Expected ']'");
+                break;
             }
             case Tok_Dot: {
                 out.call.tag = Call_GetMember;
