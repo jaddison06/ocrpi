@@ -159,9 +159,8 @@ void testAll() {
     expectNStr(binary.b->primary.start, 1, "2");
 
     expect(fun.block.root[1].tag == DOR_decl);
-    Declaration* declB = fun.block.root[0].declaration;
-    printf("%s\n", DeclTagToString(declB->tag));
-    expect(declB->tag = DeclTag_Stmt);
+    Declaration* declB = fun.block.root[1].declaration;
+    expect(declB->tag == DeclTag_Stmt);
     expect(declB->stmt.tag == StmtTag_Expr);
     expect(declB->stmt.expr.tag == ExprTag_Call);
     CallExpr call = declB->stmt.expr.call;
@@ -193,12 +192,12 @@ void testAll() {
     Expression* argsB = callB.arguments.root;
     
     expect(argsB[0].tag == ExprTag_Primary);
-    expect(args[0].primary.length == 1);
-    expectNStr(args[0].primary.start, 1, "3");
+    expect(argsB[0].primary.length == 1);
+    expectNStr(argsB[0].primary.start, 1, "3");
 
     expect(argsB[1].tag == ExprTag_Primary);
-    expect(args[1].primary.length == 1);
-    expectNStr(args[1].primary.start, 1, "4");
+    expect(argsB[1].primary.length == 1);
+    expectNStr(argsB[1].primary.start, 1, "4");
 
     expect(binaryB.b->tag == ExprTag_Primary);
     expect(binaryB.b->primary.length == 1);
