@@ -96,11 +96,11 @@ def main():
     makefile = '.PHONY: makefile\n\n' \
     + makefile_item(
         'all',
-        objects,
+        ['codegen'] + objects,
         [f'{COMPILER} {" ".join(objects)} -o {executable}{libs_str}']
     ) + makefile_item(
         'debug',
-        debug_objects,
+        ['codegen'] + debug_objects,
         [f'{COMPILER} -g -rdynamic {" ".join(debug_objects)} -o {executable}{libs_str}']
     ) + makefile_item(
         'run',
@@ -115,11 +115,18 @@ def main():
         [],
         [f'{PYTHON} build/generate-makefile.py']
     ) + makefile_item(
+        'codegen',
+        [],
+        [
+            f'{PYTHON} build/codegen.py'
+        ]
+    ) + makefile_item(
         'clean',
         [],
         [
             fs_cmd('rm_dir', 'build/objects'),
-            fs_cmd('rm_file', executable)
+            fs_cmd('rm_file', executable),
+            fs_cmd('rm_file', 'generated.h')
         ]
     ) + makefile
 

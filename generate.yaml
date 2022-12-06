@@ -1,0 +1,8 @@
+config:
+  out: generated.h
+
+enums:
+  test:
+    - a
+    - b
+    - c
