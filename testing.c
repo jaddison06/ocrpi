@@ -15,19 +15,7 @@ static char* module;
 #define expectStr(expression, expected) _expectStr(expression, #expression, expected)
 #define expectNStr(expression, length, expected) _expectNStr(expression, #expression, length, expected)
 
-static bool _allPassed = true;
-static bool _exitRegistered = false;
-
-static void _onExit() {
-    if (_allPassed) printf("\n ! \033[0;32mAll tests passed!! <333333\033[0m\n");
-}
-
 static void _expect(bool expression, char* expressionString) {
-    if (!_exitRegistered) {
-        atexit(_onExit);
-        _exitRegistered = true;
-    }
-
     static char* oldModule = NULL;
     static int id;
     if (
@@ -40,8 +28,7 @@ static void _expect(bool expression, char* expressionString) {
     }
 
     if (!expression) {
-        _allPassed = false;
-        printf(" ! \033[0;31mTest %i (%s) failed :(\033[0m\n", id++, expressionString);
+        printf(" ! \033[0;31mTest %i (%s) failed :-(\033[0m\n", id++, expressionString);
         exit(70);
     } else {
         printf("<3 \033[0;32mTest %i passed\033[0m\n", id++);
@@ -50,7 +37,7 @@ static void _expect(bool expression, char* expressionString) {
 
 static void _expectStr(char* expression, char* expressionStr, char* expected) {
     char* buf = malloc(strlen(expressionStr) + strlen(expression) + strlen(expected) + 13);
-    sprintf(buf, "%s -> '%s' == '%s'", expressionStr, expression, expected);
+    sprintf(buf, "%s (-> \"%s\") == \"%s\"", expressionStr, expression, expected);
     _expect(strcmp(expression, expected) == 0, buf);
     free(buf);
 }
@@ -85,7 +72,7 @@ static char* readFile(char* path) {
     return out;
 }
 
-void testAll() {
+static void _testAll() {
     module = "lexer";
     char* source = readFile("test/lex.ocr");
     LexOutput lo = lex(source);
@@ -204,4 +191,11 @@ void testAll() {
     source = readFile("test/check.ocr");
     lo = lex(source);
     po = parse(lo);
+
+    printf("\n ! \033[0;32mAll tests passed!! <333333\033[0m\n");
+}
+
+void testAll() {
+    _testAll();
+    printf("\n ! \033[0;32mAll tests passed!! <333333\033[0m\n");
 }
