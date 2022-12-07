@@ -1,0 +1,4 @@
+.vscode/
+generated.h
+Makefile
+README.md

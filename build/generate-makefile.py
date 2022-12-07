@@ -128,6 +128,12 @@ def main():
             fs_cmd('rm_file', executable),
             fs_cmd('rm_file', 'generated.h')
         ]
+    ) + makefile_item(
+        'cloc',
+        [],
+        [
+            'cloc . --exclude-list=cloc_exclude.txt'
+        ]
     ) + makefile
 
     with open('Makefile', 'wt') as fh: fh.write(makefile)
