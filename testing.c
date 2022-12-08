@@ -187,12 +187,14 @@ static void _testAll() {
     expect(binaryB.b->primary.length == 1);
     expectNStr(binaryB.b->primary.start, 1, "5");
 
-    module = "checker";
-    source = readFile("test/check.ocr");
+    module = "parser-error-reporting";
+    source = readFile("test/errorRecovery.ocr");
     lo = lex(source);
     po = parse(lo);
 
-    printf("\n ! \033[0;32mAll tests passed!! <333333\033[0m\n");
+    expect(po.errors.len == 2);
+    printf("%s\n", po.errors.root[0].msg);
+    printf("%s\n", po.errors.root[1].msg);
 }
 
 void testAll() {

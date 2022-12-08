@@ -1,0 +1,13 @@
+procedure thisBitchCantReturn()
+    return x
+endprocedure
+
+function balls()
+    return x
+endfunction
+
+function +
+
+function another()
+
+endfunction

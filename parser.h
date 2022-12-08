@@ -8,7 +8,7 @@
 #include "vector.h"
 
 typedef struct {
-    int tokId;
+    Token tok;
     char* msg;
 } ParseError;
 

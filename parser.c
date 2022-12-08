@@ -1,17 +1,36 @@
 #include "parser.h"
 
+#include <setjmp.h>
+
 #include "common.h"
 #include "backtrace.h"
 
 int current;
 Token* toks;
+jmp_buf syncJump;
+ParseError currentError;
 
-STATIC void panic(char* msg) {
+STATIC void printError(char* msg) {
     Token errorTok = toks[current];
     char* text = tokText(errorTok);
     printf("Parse error at token #%i (line %i, column %i)\n'%s':\n\x1b[31m%s\x1b[0m\n", current + 1, errorTok.line, errorTok.col, text, msg);
     free(text);
     BACKTRACE(8);
+}
+
+// Recoverable error - synchronise & continue
+STATIC void error(char* msg) {
+    printError(msg);
+    currentError = (ParseError){
+        .tok = toks[current],
+        .msg = msg
+    };
+    longjmp(syncJump, 1);
+}
+
+// Unrecoverable error - panic & exit
+STATIC void panic(char* msg) {
+    printError(msg);
     exit(-1);
 }
 
@@ -45,7 +64,7 @@ STATIC bool match(TokType type) {
 
 STATIC Token consume(TokType type, char* message) {
     if (peek().type == type) return advance();
-    panic(message);
+    error(message);
 }
 
 // forward decl
@@ -67,7 +86,7 @@ STATIC Expression primary() {
         match(Tok_FloatLit) ||
         match(Tok_Identifier)
     )) {
-        panic("Unexpected token!");
+        error("Unexpected token!");
     }
     return (Expression){
         .tag = ExprTag_Primary,
@@ -281,7 +300,7 @@ STATIC Expression expression() {
 STATIC INLINE ParamPassMode passMode() {
     if (match(Tok_ByRef)) return Param_byRef;
     else if (match(Tok_ByVal)) return Param_byVal;
-    panic("Expected 'byRef' or 'byVal'");
+    error("Expected 'byRef' or 'byVal'");
 }
 
 STATIC Parameter param() {
@@ -384,7 +403,7 @@ STATIC ForStmt for_() {
         out.iterator.length == iteratorCheck.length &&
         strncmp(out.iterator.start, iteratorCheck.start, iteratorCheck.length) == 0
     )) {
-        panic("Differing iterator names!");
+        error("Differing iterator names!");
     }
 
     return out;
@@ -479,7 +498,7 @@ STATIC SwitchStmt switch_() {
 
 
     while (!match(Tok_EndSwitch)) {
-        if (out.hasDefault) panic("'default' must be the last case in a switch statement!");
+        if (out.hasDefault) error("'default' must be the last case in a switch statement!");
         if (match(Tok_Case)) {
             ConditionalBlock currentBlock;
             currentBlock.condition = expression();
@@ -598,7 +617,26 @@ ParseOutput parse(LexOutput lo) {
 
     Declaration newDecl;
     while (!isAtEnd()) {
-        APPEND(out.ast, declaration());
+        if (! setjmp(syncJump)) {
+            APPEND(out.ast, declaration());
+        } else {
+            APPEND(out.errors, currentError);
+            while (!(
+                peek().type == Tok_Global ||
+                peek().type == Tok_For ||
+                peek().type == Tok_While ||
+                peek().type == Tok_Do ||
+                peek().type == Tok_If ||
+                peek().type == Tok_Switch ||
+                peek().type == Tok_Array ||
+                peek().type == Tok_Function ||
+                peek().type == Tok_Procedure ||
+                peek().type == Tok_Class ||
+                isAtEnd()
+            )) {
+                advance();
+            }
+        }
     }
 
     return out;
