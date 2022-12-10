@@ -30,19 +30,8 @@ typedef struct {
     int line, col;
 } Token;
 
-typedef struct {
-    char* tokStart;
-    int tokLength;
-    char* message;
-} LexError;
-
 DECL_VEC(Token, TokList)
-DECL_VEC(LexError, LexErrList)
-
-typedef struct {
-    TokList toks;
-    LexErrList errors;
-} LexOutput;
+typedef TokList LexOutput;
 
 // ALLOCATES!
 //

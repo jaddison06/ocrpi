@@ -2,7 +2,7 @@
 
 #pragma once
 
-#if defined(OCRPI_BACKTRACE) && defined(__linux__)
+#if defined(OCRPI_DEBUG) && defined(__linux__)
 
 #include <execinfo.h>
 #include <stdio.h>

@@ -1,6 +1,6 @@
 #pragma once
 
-#ifdef OCRPI_BACKTRACE
+#ifdef OCRPI_DEBUG
 
 // can't backtrace static functions!!!!!!
 #define STATIC

@@ -27,7 +27,7 @@ def all_with_extension(*exts: str) -> list[str]:
     return out
 
 COMPILER = 'gcc'
-DEBUG_DEFINES: dict[str, str] = {'OCRPI_BACKTRACE': '1'}
+DEBUG_DEFINES: dict[str, str] = {'OCRPI_DEBUG': '1'}
 LIBS: dict[str, list[str]] = {}
 EXECUTABLE = 'ocrpi'
 SOURCE_EXTS = ['.c']

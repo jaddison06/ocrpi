@@ -1,12 +1,12 @@
 #include "testing.h"
 
 #include <string.h>
-#include <stdio.h>
 #include <stdlib.h>
 #include <stdbool.h>
 
 #include "lexer.h"
 #include "parser.h"
+#include "readFile.h"
 
 static char* module;
 
@@ -52,24 +52,6 @@ static void _expectNStr(char* expression, char* expressionStr, int length, char*
     _expectStr(buf, newExpressionStr, expected);
     free(newExpressionStr);
     free(buf);
-}
-
-static char* readFile(char* path) {
-    FILE* fp = fopen(path, "rb");
-
-    fseek(fp, 0, SEEK_END);
-    size_t fileSize = ftell(fp);
-    rewind(fp);
-
-    char* out = malloc(fileSize + 1);
-
-    fread(out, sizeof(char), fileSize, fp);
-
-    out[fileSize] = 0;
-
-    fclose(fp);
-
-    return out;
 }
 
 static void _testAll() {
@@ -193,8 +175,8 @@ static void _testAll() {
     po = parse(lo);
 
     expect(po.errors.len == 2);
-    printf("%s\n", po.errors.root[0].msg);
-    printf("%s\n", po.errors.root[1].msg);
+    expectStr(po.errors.root[0].msg, "Unexpected token!");
+    expectStr(po.errors.root[1].msg, "Expected function name");
 }
 
 void testAll() {

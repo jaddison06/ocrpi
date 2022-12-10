@@ -9,8 +9,7 @@ static int line;
 static int col;
 
 void destroyLexOutput(LexOutput lo) {
-    DESTROY(lo.toks);
-    DESTROY(lo.errors);
+    DESTROY(lo);
 }
 
 static bool isAtEnd() {
@@ -274,9 +273,7 @@ LexOutput lex(char* source) {
     col = 1;
 
     TokList toks;
-    LexErrList errors;
     INIT(toks);
-    INIT(errors);
 
     while (!isAtEnd()) {
         skipWhitespace();
@@ -298,10 +295,7 @@ LexOutput lex(char* source) {
         .col = col - (current - start)
     }));
 
-    return (LexOutput){
-        .toks = toks,
-        .errors = errors
-    };
+    return toks;
 }
 
 char* tokText(Token tok) {
