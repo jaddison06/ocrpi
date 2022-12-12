@@ -2,3 +2,4 @@
 generated.h
 Makefile
 README.md
+ParserSynchronisation.md
