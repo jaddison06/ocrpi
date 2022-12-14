@@ -4,6 +4,7 @@
 
 #include "common.h"
 #include "backtrace.h"
+#include "panic.h"
 
 int current;
 Token* toks;
@@ -29,14 +30,14 @@ STATIC void error(char* msg) {
 }
 
 // Unrecoverable error - panic & exit
-STATIC void panic(char* msg) {
+STATIC void parserPanic(char* msg) {
     printError(msg);
-    exit(-1);
+    panic(Panic_Parser, "");
 }
 
 STATIC INLINE Token previous() {
     // todo: sexier way of handling this?
-    if (current == 0) panic("Can't have previous token from position 0!");
+    if (current == 0) parserPanic("Can't have previous token from position 0!");
     return toks[current - 1];
 }
 
@@ -368,7 +369,7 @@ STATIC ProcDecl procedure() {
 }
 
 STATIC ClassDecl class() {
-    panic("not a thing yet :(");
+    parserPanic("not a thing yet :(");
 }
 
 STATIC GlobalStmt global() {
@@ -609,7 +610,7 @@ STATIC Declaration declaration() {
 
 ParseOutput parse(LexOutput lo) {
     current = 0;
-    toks = lo.toks.root;
+    toks = lo.root;
 
     ParseOutput out;
     INIT(out.ast);

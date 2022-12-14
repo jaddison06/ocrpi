@@ -58,10 +58,9 @@ static void _testAll() {
     module = "lexer";
     char* source = readFile("test/lex.ocr");
     LexOutput lo = lex(source);
-    expect(lo.errors.len == 0);
-    expect(lo.toks.len == 14);
+    expect(lo.len == 14);
 
-#define expectTok(idx, theType) expect(lo.toks.root[idx].type == theType)
+#define expectTok(idx, theType) expect(lo.root[idx].type == theType)
 
     expectTok(0, Tok_If);
     expectTok(1, Tok_EndIf);
@@ -81,7 +80,7 @@ static void _testAll() {
     module = "parser";
     source = readFile("test/parse.ocr");
     lo = lex(source);
-    expect(lo.toks.len == 35);
+    expect(lo.len == 35);
 
     ParseOutput po = parse(lo);
     // general checks

@@ -23,3 +23,11 @@ enums:
     - Fun
     - Proc
     - Class
+  ObjType:
+    - Class
+    - Func
+    - Int
+    - String
+    - Float
+    - Array
+    - Instance
