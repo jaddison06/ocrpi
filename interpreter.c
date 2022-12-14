@@ -13,6 +13,14 @@ typedef struct {
 
 typedef struct {
 
+} ProcObj;
+
+DECL_VEC(FunctionObj, FuncList)
+DECL_VEC(ProcObj, ProcList)
+
+typedef struct {
+    FuncList funcs; //? again, names!! THINK JADS THINK
+    ProcList procs;
 } ClassObj;
 
 typedef struct {
@@ -30,6 +38,7 @@ struct InterpreterObj {
         int int_;
         float float_;
         FunctionObj func;
+        ProcObj proc;
         ClassObj class;
         ObjList array;
         InstanceObj instance;
@@ -39,7 +48,7 @@ struct InterpreterObj {
 typedef struct Scope Scope;
 
 struct Scope {
-    ObjList objects;
+    ObjList objects; //? need names at THIS LEVEL!
     Scope* parent;
 };
 
@@ -68,7 +77,7 @@ STATIC void interpretProc(ProcDecl proc) {
     
 }
 
-STATIC void interpretFunc(FunDecl func) {
+STATIC void interpretFun(FunDecl func) {
     
 }
 

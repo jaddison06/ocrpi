@@ -7,6 +7,7 @@
 #include "lexer.h"
 #include "parser.h"
 #include "readFile.h"
+#include "map.h"
 
 static char* module;
 
@@ -52,6 +53,16 @@ static void _expectNStr(char* expression, char* expressionStr, int length, char*
     _expectStr(buf, newExpressionStr, expected);
     free(newExpressionStr);
     free(buf);
+}
+
+DECL_MAP(int, IntMap)
+
+static void testMap() {
+    IntMap intMap = NewMap();
+    expect(IntMapFind(intMap, "eeee") == NULL);
+    int test = 3;
+    IntMapSet(intMap, "eeee", &test);
+    expect(*IntMapFind(intMap, "eeee") == 3);
 }
 
 static void _testAll() {
@@ -176,6 +187,9 @@ static void _testAll() {
     expect(po.errors.len == 2);
     expectStr(po.errors.root[0].msg, "Unexpected token!");
     expectStr(po.errors.root[1].msg, "Expected function name");
+
+    module = "map";
+    testMap();
 }
 
 void testAll() {
