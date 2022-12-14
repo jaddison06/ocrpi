@@ -33,6 +33,7 @@ EXECUTABLE = 'ocrpi'
 SOURCE_EXTS = ['.c']
 HEADER_EXTS = ['.h']
 PYTHON = 'python'
+CLOC = 'C:/Users/jjadd/Downloads/cloc-1.92.exe' if system() == 'Windows' else 'cloc'
 # If these files change, recompile EVERYTHING
 COMMON_DEPENDENCIES = []
 
@@ -132,7 +133,7 @@ def main():
         'cloc',
         [],
         [
-            'cloc . --exclude-list=cloc_exclude.txt'
+            f'{CLOC} . --exclude-list=cloc_exclude.txt'
         ]
     ) + makefile
 
