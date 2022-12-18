@@ -1,63 +1,53 @@
 #pragma once
 
-#include "string.h"
+#include <string.h>
+#include <stdbool.h>
 
 #include "vector.h"
 
+#define _NewMap(name) static inline name New##name() { \
+    name out; \
+    INIT(out); \
+    return out; \
+}
+
+#define _Find(type, name) static inline type##Option name##Find(name* map, char* key) { \
+    for (int i = 0; i < map->len; i++) { \
+        if (strcmp(map->root[i].key, key) == 0) return (type##Option){.value = map->root[i].value, .exists = true}; \
+    } \
+    return (type##Option){.exists = false}; \
+}
+
+#define _Set(type, name) static inline void name##Set(name* map, char* key, type value) { \
+    for (int i = 0; i < map->len; i++) { \
+        if (strcmp(map->root[i].key, key) == 0) { \
+            map->root[i].value = value; \
+            return; \
+        } \
+    } \
+    APPEND(*map, ((_##name##Entry) {.key = key, .value = value})); \
+}
+
+#define _Remove(name) static inline void name##Remove(name* map, char* key) { \
+    for (int i = 0; i < map->len; i++) { \
+        if (strcmp(map->root[i].key, key) == 0) { \
+            REMOVE(*map, i); \
+            return; \
+        } \
+    } \
+}
+
 #define DECL_MAP(type, name) \
-    typedef Map name; \
-    static inline type* name##Find(name map, char* key) { return (type*)_mapFind(map, key); } \
-    static inline void name##Set(name map, char* key, type* value) { _mapSet(map, key, (void*)value); } \
-    static inline void name##Remove(name map, char* key) { _mapRemove(map, key); }
-
-typedef struct {
-    char* name;
-    void* value;
-} _MapEntry;
-
-DECL_VEC(_MapEntry, Map)
-
-static inline Map NewMap() {
-    Map out;
-    INIT(out);
-    return out;
-}
-
-static inline int _mapFindIdx(Map map, char* key) {
-    for (int i = 0; i < map.len; i++) {
-        if (strcmp(map.root[i].name, key) == 0) return i;
-    }
-    return -1;
-}
-
-static inline void** _mapFindValue(Map map, char* key) {
-    for (int i = 0; i < map.len; i++) {
-        if (strcmp(map.root[i].name, key) == 0) return &map.root[i].value;
-    }
-    return NULL;
-}
-
-static inline void* _mapFind(Map map, char* key) {
-    void** pos = _mapFindValue(map, key);
-    if (pos == NULL) return NULL;
-    return *pos;
-}
-
-static inline void _mapSet(Map map, char* key, void* value) {
-    void** pos = _mapFindValue(map, key);
-    if (pos == NULL) {
-        APPEND(map, ((_MapEntry){
-            .name = key,
-            .value = value
-        }));
-    } else {
-        *pos = value;
-    }
-}
-
-static inline void _mapRemove(Map map, char* key) {
-    int idx = _mapFindIdx(map, key);
-    if (idx >= 0) {
-        REMOVE(map, idx);
-    }
-}
+    typedef struct { \
+        char* key; \
+        type value; \
+    } _##name##Entry; \
+    typedef struct { \
+        type value; \
+        bool exists; \
+    } type##Option; \
+    DECL_VEC(_##name##Entry, name) \
+    _NewMap(name) \
+    _Find(type, name) \
+    _Set(type, name) \
+    _Remove(name)

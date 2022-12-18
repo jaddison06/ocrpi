@@ -4,8 +4,11 @@
 
 #include "generated.h"
 #include "common.h"
-#include "vector.h"
+#include "map.h"
 #include "panic.h"
+
+typedef struct InterpreterObj InterpreterObj;
+DECL_VEC(InterpreterObj, ObjList);
 
 typedef struct {
 
@@ -15,21 +18,18 @@ typedef struct {
 
 } ProcObj;
 
-DECL_VEC(FunctionObj, FuncList)
-DECL_VEC(ProcObj, ProcList)
+DECL_MAP(FunctionObj, FuncNS)
+DECL_MAP(ProcObj, ProcNS)
 
 typedef struct {
-    FuncList funcs; //? again, names!! THINK JADS THINK
-    ProcList procs;
+    FuncNS funcs;
+    ProcNS procs;
 } ClassObj;
 
 typedef struct {
-
+    ClassObj class;
+    
 } InstanceObj;
-
-typedef struct InterpreterObj InterpreterObj;
-
-DECL_VEC(InterpreterObj, ObjList);
 
 struct InterpreterObj {
     ObjType tag;
@@ -45,10 +45,12 @@ struct InterpreterObj {
     };
 };
 
+DECL_MAP(InterpreterObj, ObjNS);
+
 typedef struct Scope Scope;
 
 struct Scope {
-    ObjList objects; //? need names at THIS LEVEL!
+    ObjNS objects;
     Scope* parent;
 };
 
@@ -58,7 +60,7 @@ STATIC void pushScope() {
     Scope* oldScope = currentScope;
     currentScope = malloc(sizeof(Scope));
     currentScope->parent = oldScope;
-    INIT(currentScope->objects);
+    currentScope->objects = NewObjNS();
 }
 
 STATIC void popScope() {

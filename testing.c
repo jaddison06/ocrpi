@@ -10,6 +10,7 @@
 #include "map.h"
 
 static char* module;
+static int testCount = 0;
 
 // slightly yucky but we move
 #define expect(expression) _expect(expression, #expression)
@@ -19,6 +20,9 @@ static char* module;
 static void _expect(bool expression, char* expressionString) {
     static char* oldModule = NULL;
     static int id;
+
+    testCount++;
+
     if (
         oldModule == NULL ||
         strcmp(oldModule, module) != 0
@@ -58,11 +62,11 @@ static void _expectNStr(char* expression, char* expressionStr, int length, char*
 DECL_MAP(int, IntMap)
 
 static void testMap() {
-    IntMap intMap = NewMap();
-    expect(IntMapFind(intMap, "eeee") == NULL);
-    int test = 3;
-    IntMapSet(intMap, "eeee", &test);
-    expect(*IntMapFind(intMap, "eeee") == 3);
+    IntMap intMap = NewIntMap();
+    expect(IntMapFind(&intMap, "eeee").exists == false);
+    IntMapSet(&intMap, "eeee", 3);
+    expect(IntMapFind(&intMap, "eeee").exists == true);
+    expect(IntMapFind(&intMap, "eeee").value == 3);
 }
 
 static void _testAll() {
@@ -194,5 +198,5 @@ static void _testAll() {
 
 void testAll() {
     _testAll();
-    printf("\n ! \033[0;32mAll tests passed!! <333333\033[0m\n");
+    printf("\n ! \033[0;32m%i tests passed!! <333333\033[0m\n", testCount);
 }
