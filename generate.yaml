@@ -26,6 +26,7 @@ enums:
   ObjType:
     - Class
     - Func
+    - Proc
     - Int
     - String
     - Float

@@ -1,3 +1,5 @@
+// https://gist.github.com/jaddison06/39df5e0dd4b01a02285d57f71fa6d45e/edit
+
 #pragma once
 
 #include <string.h>
