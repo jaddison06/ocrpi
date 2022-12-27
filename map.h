@@ -13,6 +13,8 @@
     return out; \
 }
 
+#define _Destroy(name) static inline void Destroy##name(name* map) { DESTROY(*map); }
+
 #define _Find(type, name) static inline type##Option name##Find(name* map, char* key) { \
     for (int i = 0; i < map->len; i++) { \
         if (strcmp(map->root[i].key, key) == 0) return (type##Option){.value = map->root[i].value, .exists = true}; \
@@ -50,6 +52,7 @@
     } type##Option; \
     DECL_VEC(_##name##Entry, name) \
     _NewMap(name) \
+    _Destroy(name) \
     _Find(type, name) \
     _Set(type, name) \
     _Remove(name)

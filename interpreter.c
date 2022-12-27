@@ -64,11 +64,74 @@ STATIC void popScope() {
 
 STATIC void interpretBlock(DeclList block);
 
-STATIC void interpretExpr(Expression expr) {
-    
+STATIC InterpreterObj interpretExpr(Expression expr) {
+    InterpreterObj out;
+
+    switch (expr.tag) {
+        case ExprTag_Unary: {
+            break;
+        }
+        case ExprTag_Binary: {
+            break;
+        }
+        case ExprTag_Call: {
+            break;
+        }
+        case ExprTag_Super: {
+            break;
+        }
+        case ExprTag_Grouping: {
+            break;
+        }
+        case ExprTag_Primary: {
+            char* text = tokText(expr.primary);
+            switch (expr.primary.type) {
+                case Tok_StringLit: {
+                    // strip leading & trailing quotes!
+                    char* stringContents = malloc(strlen(text) - 1);
+                    memcpy(stringContents, text + 1, strlen(text) - 2);
+                    stringContents[strlen(text) - 2] = 0;
+                    out = (InterpreterObj){
+                        .tag = ObjType_String,
+                        .string = stringContents
+                    };
+                    break;
+                }
+                case Tok_IntLit: {
+                    out = (InterpreterObj){
+                        .tag = ObjType_Int,
+                        .int_ = atoi(text)
+                    };
+                    break;
+                }
+                case Tok_FloatLit: {
+                    out = (InterpreterObj){
+                        .tag = ObjType_Float,
+                        .float_ = strtof(text, NULL)
+                    };
+                    break;
+                }
+                case Tok_Identifier: {
+                    InterpreterObjOption obj = ObjNSFind(&currentScope->objects, text);
+                    if (!obj.exists) {
+                        char* prefix = "Unknown variable ";
+                        char* error = malloc(strlen(prefix) + strlen(text) + 3);
+                        sprintf(error, "%s%s!\n", prefix, error);
+                        panic(Panic_Interpreter, error);
+                    }
+                    out = obj.value;
+                    break;
+                }
+            }
+            free(text);
+            break;
+        }
+    }
+    return out;
 }
 
 STATIC bool isTruthy(Expression expr) {
+    InterpreterObj result = interpretExpr(expr);
 
 }
 
@@ -116,14 +179,14 @@ STATIC void interpretStmt(Statement stmt) {
 }
 
 STATIC void interpretProc(ProcDecl proc) {
-    ObjNSSet(currentScope, tokText(proc.name), (InterpreterObj){
+    ObjNSSet(&currentScope->objects, tokText(proc.name), (InterpreterObj){
         .tag = ObjType_Proc,
         .proc = proc
     });
 }
 
 STATIC void interpretFun(FunDecl func) {
-    ObjNSSet(currentScope, tokText(func.name), (InterpreterObj){
+    ObjNSSet(&currentScope->objects, tokText(func.name), (InterpreterObj){
         .tag = ObjType_Func,
         .func = func
     });
