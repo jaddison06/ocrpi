@@ -54,7 +54,7 @@ equality ::= comparison (("==" | "!=") comparison)*
 comparison ::= term (("<" | "<=" | ">" | ">=") term)*
 term ::= factor (("+" | "-") factor)*
 factor ::= exp (("*" | "/") exp)*
-exp :: unary (^ unary)*
+exp ::= unary ("^" unary)*
 unary ::= ("NOT" | "-" | "new") unary | call
 call ::= super ("(" arguments? ")" | "[" EXPRESSION "]" | "." IDENTIFIER)*
 super ::= "super" "." IDENTIFIER | grouping

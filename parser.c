@@ -182,14 +182,29 @@ STATIC Expression unary() {
     return call();
 }
 
-STATIC Expression factor() {
+STATIC Expression exponent() {
     Expression out = unary();
-    while (match(Tok_Star) || match(Tok_Slash)) {
+    while (match(Tok_Exp)) {
         out = (Expression){
             .tag = ExprTag_Binary,
             .binary = (BinaryExpr){
                 .a = copyExpr(out),
                 .b = copyExpr(unary()),
+                .operator = previous()
+            }
+        };
+    }
+    return out;
+}
+
+STATIC Expression factor() {
+    Expression out = exponent();
+    while (match(Tok_Star) || match(Tok_Slash)) {
+        out = (Expression){
+            .tag = ExprTag_Binary,
+            .binary = (BinaryExpr){
+                .a = copyExpr(out),
+                .b = copyExpr(exponent()),
                 .operator = previous()
             }
         };
