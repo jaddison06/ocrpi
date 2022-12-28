@@ -250,11 +250,27 @@ static Token symbol(char c) {
             : Tok_Greater
         );
 
-        case '+': return makeTok(Tok_Plus);
-        case '-': return makeTok(Tok_Minus);
-        case '*': return makeTok(Tok_Star);
-        case '/': return makeTok(Tok_Slash);
-        case '^': return makeTok(Tok_Exp);
+        case '+': return makeTok(match('=')
+            ? Tok_PlusEqual
+            : Tok_Plus
+        );
+        case '-': return makeTok(match('=')
+            ? Tok_MinusEqual
+            : Tok_Minus
+        );
+        case '*': return makeTok(match('=')
+            ? Tok_StarEqual
+            : Tok_Star
+        );
+        case '/': return makeTok(match('=')
+            ? Tok_SlashEqual
+            : Tok_Slash
+        );
+        case '^': return makeTok(match('=')
+            ? Tok_ExpEqual
+            : Tok_Exp
+        );
+
         case ':': return makeTok(Tok_Colon);
         case '.': return makeTok(Tok_Dot);
         case ',': return makeTok(Tok_Comma);

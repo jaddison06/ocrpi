@@ -6,6 +6,7 @@ typedef enum {
     // Single and double symbols
     Tok_Equal, Tok_EqualEqual, Tok_BangEqual, Tok_Less, Tok_LessEqual, Tok_Greater, Tok_GreaterEqual,
     Tok_Plus, Tok_Minus, Tok_Star, Tok_Slash, Tok_Exp,
+    Tok_PlusEqual, Tok_MinusEqual, Tok_StarEqual, Tok_SlashEqual, Tok_ExpEqual,
     Tok_Colon, Tok_Dot, Tok_Comma, Tok_LParen, Tok_RParen, Tok_LSquare, Tok_RSquare,
 
     // Keywords

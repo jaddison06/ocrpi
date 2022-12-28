@@ -46,13 +46,15 @@ expression ::= assignment
 # ?? can't this just be a normal cascading rule?
 assignment ::= (lvalue "=" assignment) | termAssignment
 termAssignment ::= (lvalue ("+=" | "-=") termAssignment) | factorAssignment
-factorAssignment ::= (lvalue ("*=" | "/=" factorAssignment)) | logicOr
+factorAssignment ::= (lvalue ("*=" | "/=" factorAssignment)) | expAssignment
+expAssignment ::= (lvalue ("^=" expAssignment)) | logicOr
 logicOr ::= logicAnd ("OR" logicAnd)*
 logicAnd ::= equality ("AND" equality)*
 equality ::= comparison (("==" | "!=") comparison)*
 comparison ::= term (("<" | "<=" | ">" | ">=") term)*
 term ::= factor (("+" | "-") factor)*
-factor ::= unary (("*" | "/") unary)*
+factor ::= exp (("*" | "/") exp)*
+exp :: unary (^ unary)*
 unary ::= ("NOT" | "-" | "new") unary | call
 call ::= super ("(" arguments? ")" | "[" EXPRESSION "]" | "." IDENTIFIER)*
 super ::= "super" "." IDENTIFIER | grouping
