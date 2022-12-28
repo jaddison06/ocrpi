@@ -2,7 +2,6 @@
 
 #include <setjmp.h>
 
-#include "common.h"
 #include "backtrace.h"
 #include "panic.h"
 
@@ -72,8 +71,7 @@ STATIC Token consume(TokType type, char* message) {
 STATIC Declaration declaration();
 STATIC Expression expression();
 
-// malloc & get a pointer to a locally held expression
-STATIC INLINE Expression* copyExpr(Expression expr) {
+INLINE Expression* copyExpr(Expression expr) {
     Expression* new = malloc(sizeof(Expression));
     memcpy(new, &expr, sizeof(Expression));
     return new;

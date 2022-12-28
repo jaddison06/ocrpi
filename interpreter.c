@@ -62,6 +62,12 @@ STATIC void popScope() {
     currentScope = parentScope;
 }
 
+STATIC INLINE Scope* globalScope() {
+    Scope* scope = currentScope;
+    while (scope->parent != NULL) scope = scope->parent;
+    return scope;
+}
+
 STATIC void interpretBlock(DeclList block);
 
 STATIC InterpreterObj interpretExpr(Expression expr) {
@@ -142,15 +148,70 @@ STATIC void interpretStmt(Statement stmt) {
             break;
         }
         case StmtTag_Global: {
+            ObjNSSet(&globalScope()->objects, tokText(stmt.global.name), interpretExpr(stmt.global.initializer));
             break;
         }
         case StmtTag_For: {
+            pushScope();
+            ObjNSSet(&currentScope->objects, tokText(stmt.for_.iterator), interpretExpr(stmt.for_.min));
+            Expression iterator = (Expression){
+                .tag = ExprTag_Primary,
+                .primary = stmt.for_.iterator,
+            };
+            Expression cond = (Expression){
+                .tag = ExprTag_Binary,
+                .binary = (BinaryExpr){
+                    .a = &iterator,
+                    .b = &stmt.for_.max,
+                    .operator = (Token){
+                        .line = 0,
+                        .col = 0,
+                        .start = "<",
+                        .length = 1,
+                        .type = Tok_Less
+                    }
+                }
+            };
+            Expression incr = (Expression){
+                .tag = ExprTag_Binary,
+                .binary = (BinaryExpr){
+                    .a = &iterator,
+                    .b = copyExpr((Expression){
+                        .tag = ExprTag_Primary,
+                        .primary = (Token){
+                            .line = 0,
+                            .col = 0,
+                            .start = "1",
+                            .length = 1,
+                            .type = Tok_IntLit
+                        }
+                    }),
+                    .operator = (Token){
+                        .line = 0,
+                        .col = 0,
+                        .start = "+=",
+                        .length = 2,
+                        .type = Tok_PlusEquals
+                    }
+                }
+            };
+            while (isTruthy(cond)) {
+                interpretBlock(*stmt.for_.block);
+                interpretExpr(incr);
+            }
             break;
         }
         case StmtTag_While: {
+            while (isTruthy(stmt.while_.condition)) {
+                interpretBlock(*stmt.while_.block);
+            }
             break;
         }
         case StmtTag_Do: {
+            //* yikes!! not a do-while but a do-until!
+            while (!isTruthy(stmt.do_.condition)) {
+                interpretBlock(*stmt.do_.block);
+            }
             break;
         }
         case StmtTag_If: {

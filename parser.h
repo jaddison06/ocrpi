@@ -6,6 +6,7 @@
 
 #include "lexer.h"
 #include "vector.h"
+#include "common.h"
 
 typedef struct {
     Token tok;
@@ -181,3 +182,5 @@ typedef struct {
 
 ParseOutput parse(LexOutput lo);
 void DestroyParseOutput(ParseOutput po);
+// malloc & get a pointer to a locally held expression
+INLINE Expression* copyExpr(Expression expr);
