@@ -292,20 +292,32 @@ STATIC Expression logicOr() {
     return out;
 }
 
-STATIC Expression assignment() {
-    Expression out = logicOr();
-    if (match(Tok_Equal)) {
-        out = (Expression){
-            .tag = ExprTag_Binary,
-            .binary = (BinaryExpr){
-                .a = copyExpr(out),
-                .b = copyExpr(assignment()),
-                .operator = previous()
-            }
-        };
-    }
-    return out;
+#define ASSIGNMENT(name, matchCond, parent) STATIC Expression name() { \
+    Expression out = parent(); \
+    if (matchCond) { \
+        if (!( \
+            out.tag == ExprTag_Call || \
+            out.tag == ExprTag_Super || \
+            out.tag == ExprTag_Primary \
+        )) { \
+            panic(Panic_Parser, "Can't assign to this type of expression!"); \
+        } \
+        out = (Expression){ \
+            .tag = ExprTag_Binary, \
+            .binary = (BinaryExpr){ \
+                .a = copyExpr(out), \
+                .b = copyExpr(name()), \
+                .operator = previous() \
+            } \
+        }; \
+    } \
+    return out; \
 }
+
+ASSIGNMENT(expAssignment, match(Tok_ExpEqual), logicOr)
+ASSIGNMENT(factorAssignment, match(Tok_StarEqual) || match(Tok_SlashEqual), expAssignment)
+ASSIGNMENT(termAssignment, match(Tok_PlusEqual) || match(Tok_MinusEqual), factorAssignment)
+ASSIGNMENT(assignment, match(Tok_Equal), termAssignment)
 
 STATIC Expression expression() {
     return assignment();
