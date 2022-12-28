@@ -67,6 +67,11 @@ static void testMap() {
     IntMapSet(&intMap, "eeee", 3);
     expect(IntMapFind(&intMap, "eeee").exists == true);
     expect(IntMapFind(&intMap, "eeee").value == 3);
+    IntMapSet(&intMap, "eeee", 5);
+    expect(IntMapFind(&intMap, "eeee").exists == true);
+    expect(IntMapFind(&intMap, "eeee").value == 5);
+    IntMapRemove(&intMap, "eeee");
+    expect(IntMapFind(&intMap, "eeee").exists == false);
 }
 
 static void _testAll() {
