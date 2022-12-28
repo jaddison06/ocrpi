@@ -5,6 +5,5 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2.6.0
-      - run: ls
       - run: python3.10 build/generate-makefile.py
       - run: make run-debug
