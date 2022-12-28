@@ -300,7 +300,7 @@ STATIC Expression logicOr() {
             out.tag == ExprTag_Super || \
             out.tag == ExprTag_Primary \
         )) { \
-            panic(Panic_Parser, "Can't assign to this type of expression!"); \
+            error("Can't assign to this type of expression!"); \
         } \
         out = (Expression){ \
             .tag = ExprTag_Binary, \

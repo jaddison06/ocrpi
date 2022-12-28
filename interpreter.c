@@ -118,8 +118,14 @@ STATIC InterpreterObj interpretExpr(Expression expr) {
                     break;
                 }
                 case Tok_Identifier: {
-                    InterpreterObjOption obj = ObjNSFind(&currentScope->objects, text);
-                    if (!obj.exists) {
+                    Scope* searchScope = currentScope;
+                    InterpreterObjOption obj;
+                    while (searchScope != NULL) {
+                        obj = ObjNSFind(&searchScope->objects, text);
+                        if (obj.exists) break;
+                        searchScope = searchScope->parent;
+                    }
+                    if (searchScope == NULL) {
                         char* prefix = "Unknown variable ";
                         char* error = malloc(strlen(prefix) + strlen(text) + 3);
                         sprintf(error, "%s%s!\n", prefix, error);
@@ -191,7 +197,7 @@ STATIC void interpretStmt(Statement stmt) {
                         .col = 0,
                         .start = "+=",
                         .length = 2,
-                        .type = Tok_PlusEquals
+                        .type = Tok_PlusEqual
                     }
                 }
             };
@@ -199,6 +205,8 @@ STATIC void interpretStmt(Statement stmt) {
                 interpretBlock(*stmt.for_.block);
                 interpretExpr(incr);
             }
+            free(incr.binary.b);
+            popScope();
             break;
         }
         case StmtTag_While: {
