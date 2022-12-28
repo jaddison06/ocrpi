@@ -1,0 +1,8 @@
+name: run-tests
+on: [push]
+jobs:
+  main:
+    runs-on: ubuntu-latest
+    steps:
+      - run: python3.10 build/generate-makefile.py
+      - run: make run-debug
