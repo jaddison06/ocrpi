@@ -71,12 +71,6 @@ STATIC Token consume(TokType type, char* message) {
 STATIC Declaration declaration();
 STATIC Expression expression();
 
-INLINE Expression* copyExpr(Expression expr) {
-    Expression* new = malloc(sizeof(Expression));
-    memcpy(new, &expr, sizeof(Expression));
-    return new;
-}
-
 STATIC Expression primary() {
     if (!(
         match(Tok_Self) ||

@@ -81,12 +81,14 @@ STATIC InterpreterObj interpretExpr(Expression expr) {
             break;
         }
         case ExprTag_Call: {
+            // where the magic happens!
             break;
         }
         case ExprTag_Super: {
             break;
         }
         case ExprTag_Grouping: {
+            interpretExpr(*expr.grouping);
             break;
         }
         case ExprTag_Primary: {

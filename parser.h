@@ -1,6 +1,7 @@
 #pragma once
 
 #include <stdbool.h>
+#include <stdlib.h>
 
 #include "generated.h"
 
@@ -182,5 +183,12 @@ typedef struct {
 
 ParseOutput parse(LexOutput lo);
 void DestroyParseOutput(ParseOutput po);
+
+// todo: yikes!
+//
 // malloc & get a pointer to a locally held expression
-INLINE Expression* copyExpr(Expression expr);
+STATIC INLINE Expression* copyExpr(Expression expr) {
+    Expression* new = malloc(sizeof(Expression));
+    memcpy(new, &expr, sizeof(Expression));
+    return new;
+}
