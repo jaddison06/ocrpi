@@ -27,6 +27,8 @@ enums:
     - Class
     - Func
     - Proc
+    - NativeFunc
+    - NativeProc
     - Int
     - String
     - Float

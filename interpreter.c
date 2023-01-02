@@ -13,6 +13,9 @@ DECL_VEC(InterpreterObj, ObjList);
 DECL_MAP(FunDecl, FuncNS)
 DECL_MAP(ProcDecl, ProcNS)
 
+typedef void (*NativeProc)();
+typedef InterpreterObj (*NativeFunc)();
+
 typedef struct {
     FuncNS funcs;
     ProcNS procs;
@@ -30,6 +33,8 @@ struct InterpreterObj {
         float float_;
         FunDecl func;
         ProcDecl proc;
+        NativeFunc nativeFunc;
+        NativeProc nativeProc;
         ClassObj class;
         ObjList array;
         InstanceObj instance;
