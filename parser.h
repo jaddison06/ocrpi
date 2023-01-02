@@ -184,10 +184,10 @@ typedef struct {
 ParseOutput parse(LexOutput lo);
 void DestroyParseOutput(ParseOutput po);
 
-// todo: yikes!
+// todo: let's hope i never have to debug this!!
 //
 // malloc & get a pointer to a locally held expression
-STATIC INLINE Expression* copyExpr(Expression expr) {
+static inline Expression* copyExpr(Expression expr) {
     Expression* new = malloc(sizeof(Expression));
     memcpy(new, &expr, sizeof(Expression));
     return new;
