@@ -118,6 +118,13 @@ STATIC InterpreterObj interpretExpr(Expression expr) {
         case ExprTag_Primary: {
             char* text = tokText(expr.primary);
             switch (expr.primary.type) {
+                // todo: handle self
+                case Tok_Nil: {
+                    out = (InterpreterObj){
+                        .tag = ObjType_Nil
+                    };
+                    break;
+                }
                 case Tok_StringLit: {
                     // strip leading & trailing quotes!
                     char* stringContents = malloc(strlen(text) - 1);

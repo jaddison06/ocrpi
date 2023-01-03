@@ -74,6 +74,7 @@ STATIC Expression expression();
 STATIC Expression primary() {
     if (!(
         match(Tok_Self) ||
+        match(Tok_Nil) ||
         match(Tok_StringLit) ||
         match(Tok_IntLit) ||
         match(Tok_FloatLit) ||

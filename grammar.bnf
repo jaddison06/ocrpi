@@ -59,7 +59,7 @@ unary ::= ("NOT" | "-" | "new") unary | call
 call ::= super ("(" arguments? ")" | "[" EXPRESSION "]" | "." IDENTIFIER)*
 super ::= "super" "." IDENTIFIER | grouping
 grouping ::= "(" expression ")" | primary
-primary ::= "self" | STRING | INT | FLOAT | IDENTIFIER
+primary ::= "self" | "nil" | STRING | INT | FLOAT | IDENTIFIER
 
 singleParameter ::= IDENTIFIER (":" "byVal" | "byRef")?
 parameters ::= singleParameter  ("," singleParameter)*

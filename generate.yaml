@@ -29,6 +29,7 @@ enums:
     - Proc
     - NativeFunc
     - NativeProc
+    - Nil
     - Int
     - String
     - Float
