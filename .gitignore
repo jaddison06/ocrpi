@@ -3,4 +3,5 @@ ocrpi
 ocrpi.exe
 Makefile
 .vscode
+generated.c
 generated.h

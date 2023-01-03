@@ -1,4 +1,5 @@
 .vscode/
+generated.c
 generated.h
 Makefile
 README.md

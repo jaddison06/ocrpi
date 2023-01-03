@@ -1,13 +1,16 @@
 import yaml
 from io import StringIO
+from sys import exit, argv
 
 def codegen():
+    if len(argv) != 2: exit('Usage: codegen.py <output file basename>')
+
     with open('generate.yaml', 'rt') as fh:
         genFile = yaml.safe_load(fh)
 
-    sio = StringIO()
+    header = StringIO()
 
-    sio.write(
+    header.write(
 '''// GENERATED FILE - DO NOT EDIT
 #ifndef GENERATED_H
 #define GENERATED_H
@@ -15,28 +18,35 @@ def codegen():
 ''')
 
     for name, values in genFile['enums'].items():
-        sio.write('typedef enum {\n')
+        header.write('typedef enum {\n')
         for i, value in enumerate(values):
-            sio.write(f'    {name}_{value} = {i},\n')
-        sio.write(f'}} {name};\n\n')
-        # todo: funcs in a header aren't ideal but having em static means repetition
-        # of that whole array in the binary??
-        #
-        # gets v inefficient v quickly :(
-        sio.write(f'static char* {name}ToString({name} theEnum) {{\n')
-        sio.write('    char* values[] = {')
+            header.write(f'    {name}_{value} = {i},\n')
+        header.write(f'}} {name};\n\n')
+        
+        header.write(f'char* {name}ToString({name} theEnum);\n\n')
+    
+    header.write('#endif // GENERATED_H')
+
+
+    with open(f'{argv[1]}.h', 'wt') as fh:
+        fh.write(header.getvalue())
+
+
+    source = StringIO()
+
+    source.write(f'// GENERATED FILE - DO NOT EDIT\n\n#include "{argv[1]}.h"\n\n')
+    for name, values in genFile['enums'].items():
+        source.write(f'char* {name}ToString({name} theEnum) {{\n')
+        source.write('    char* values[] = {')
         for i, value in enumerate(values):
-            sio.write(f'"{value}"')
+            source.write(f'"{value}"')
             if i != len(values) - 1:
-                sio.write(', ')
-        sio.write('};\n');
-        sio.write('    return values[theEnum];\n}\n\n')
+                source.write(', ')
+        source.write('};\n')
+        source.write('    return values[theEnum];\n}\n\n')
     
 
-    sio.write('#endif // GENERATED_H')
-
-
-    with open(genFile['config']['out'], 'wt') as fh:
-        fh.write(sio.getvalue())
+    with open(f'{argv[1]}.c', 'wt') as fh:
+        fh.write(source.getvalue())
 
 if __name__ == '__main__': codegen()
