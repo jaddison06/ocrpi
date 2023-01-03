@@ -6,4 +6,4 @@ typedef enum {
     Panic_Interpreter = 3
 } PanicCode;
 
-void panic(PanicCode code, char* msg);
+void panic(PanicCode code, char* msg, ...);

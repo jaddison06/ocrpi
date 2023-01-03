@@ -86,7 +86,26 @@ STATIC InterpreterObj interpretExpr(Expression expr) {
             break;
         }
         case ExprTag_Call: {
-            // where the magic happens!
+            switch (expr.call.tag) {
+                case Call_Call: {
+                    InterpreterObj callee = interpretExpr(*expr.call.callee);
+                    if (!(
+                        callee.tag == ObjType_Func ||
+                        callee.tag == ObjType_Proc ||
+                        callee.tag == ObjType_NativeFunc ||
+                        callee.tag == ObjType_NativeProc
+                    )) {
+                        panic(Panic_Interpreter, "Can't call this object!");
+                    }
+                    break;
+                }
+                case Call_GetMember: {
+                    break;
+                }
+                case Call_Array: {
+                    break;
+                }
+            }
             break;
         }
         case ExprTag_Super: {
