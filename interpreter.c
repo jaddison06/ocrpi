@@ -13,8 +13,8 @@ DECL_VEC(InterpreterObj, ObjList);
 DECL_MAP(FunDecl, FuncNS)
 DECL_MAP(ProcDecl, ProcNS)
 
-typedef void (*NativeProc)();
-typedef InterpreterObj (*NativeFunc)();
+typedef void (*NativeProc)(ObjList);
+typedef InterpreterObj (*NativeFunc)(ObjList);
 
 typedef struct {
     FuncNS funcs;
@@ -38,6 +38,7 @@ struct InterpreterObj {
         ClassObj class;
         ObjList array;
         InstanceObj instance;
+        InterpreterObj* reference;
     };
 };
 
@@ -51,12 +52,14 @@ struct Scope {
 };
 
 static Scope* currentScope = NULL;
+static Scope* _globalScope = NULL;
 
 STATIC void pushScope() {
     Scope* oldScope = currentScope;
     currentScope = malloc(sizeof(Scope));
     currentScope->parent = oldScope;
     currentScope->objects = NewObjNS();
+    if (oldScope == NULL) _globalScope = currentScope;
 }
 
 STATIC void popScope() {
@@ -67,16 +70,10 @@ STATIC void popScope() {
     currentScope = parentScope;
 }
 
-STATIC INLINE Scope* globalScope() {
-    Scope* scope = currentScope;
-    while (scope->parent != NULL) scope = scope->parent;
-    return scope;
-}
-
 STATIC void interpretBlock(DeclList block);
 
-STATIC InterpreterObj interpretExpr(Expression expr) {
-    InterpreterObj out;
+STATIC InterpreterObj* interpretExpr(Expression expr) {
+    InterpreterObj* out;
 
     switch (expr.tag) {
         case ExprTag_Unary: {
@@ -88,14 +85,41 @@ STATIC InterpreterObj interpretExpr(Expression expr) {
         case ExprTag_Call: {
             switch (expr.call.tag) {
                 case Call_Call: {
-                    InterpreterObj callee = interpretExpr(*expr.call.callee);
+                    InterpreterObj* callee = interpretExpr(*expr.call.callee);
                     if (!(
-                        callee.tag == ObjType_Func ||
-                        callee.tag == ObjType_Proc ||
-                        callee.tag == ObjType_NativeFunc ||
-                        callee.tag == ObjType_NativeProc
+                        callee->tag == ObjType_Func ||
+                        callee->tag == ObjType_Proc ||
+                        callee->tag == ObjType_NativeFunc ||
+                        callee->tag == ObjType_NativeProc
                     )) {
                         panic(Panic_Interpreter, "Can't call this object!");
+                    }
+                    switch (callee->tag) {
+                        case ObjType_Func: {
+                            Scope* oldScope = currentScope;
+                            currentScope = _globalScope;
+                            if (expr.call.arguments.len != callee->func.params.len)
+                                panic(Panic_Interpreter, "Called function %s with %i args instead of %i", tokText(callee->func.name), expr.call.arguments.len, callee->func.params.len);
+                            pushScope();
+                            for (int i = 0; i < expr.call.arguments.len; i++) {
+                                InterpreterObj* arg = interpretExpr(expr.call.arguments.root[i]);
+                                if (callee->func.params.root[i].passMode == Param_byRef) {
+                                    ObjNSSet(&currentScope->objects, tokText(callee->func.params.root[i].name), (InterpreterObj){
+                                        .tag = ObjType_Ref,
+                                        .reference = arg
+                                    });
+                                }
+                            }
+                        }
+                        case ObjType_Proc: {
+
+                        }
+                        case ObjType_NativeFunc: {
+                            
+                        }
+                        case ObjType_NativeProc: {
+
+                        }
                     }
                     break;
                 }
@@ -120,9 +144,7 @@ STATIC InterpreterObj interpretExpr(Expression expr) {
             switch (expr.primary.type) {
                 // todo: handle self
                 case Tok_Nil: {
-                    out = (InterpreterObj){
-                        .tag = ObjType_Nil
-                    };
+                    out->tag = ObjType_Nil;
                     break;
                 }
                 case Tok_StringLit: {
@@ -130,38 +152,32 @@ STATIC InterpreterObj interpretExpr(Expression expr) {
                     char* stringContents = malloc(strlen(text) - 1);
                     memcpy(stringContents, text + 1, strlen(text) - 2);
                     stringContents[strlen(text) - 2] = 0;
-                    out = (InterpreterObj){
-                        .tag = ObjType_String,
-                        .string = stringContents
-                    };
+                    out->tag = ObjType_String;
+                    out->string = stringContents;
                     break;
                 }
                 case Tok_IntLit: {
-                    out = (InterpreterObj){
-                        .tag = ObjType_Int,
-                        .int_ = atoi(text)
-                    };
+                    out->tag = ObjType_Int;
+                    out->int_ = atoi(text);
                     break;
                 }
                 case Tok_FloatLit: {
-                    out = (InterpreterObj){
-                        .tag = ObjType_Float,
-                        .float_ = strtof(text, NULL)
-                    };
+                    out->tag = ObjType_Float;
+                    out->float_ = strtof(text, NULL);
                     break;
                 }
                 case Tok_Identifier: {
                     Scope* searchScope = currentScope;
-                    InterpreterObjOption obj;
+                    InterpreterObj* obj;
                     while (searchScope != NULL) {
                         obj = ObjNSFind(&searchScope->objects, text);
-                        if (obj.exists) break;
+                        if (obj != NULL) break;
                         searchScope = searchScope->parent;
                     }
                     if (searchScope == NULL) {
                         panic(Panic_Interpreter, "Unknown variable %s!\n", text);
                     }
-                    out = obj.value;
+                    out = obj;
                     break;
                 }
             }
@@ -173,7 +189,7 @@ STATIC InterpreterObj interpretExpr(Expression expr) {
 }
 
 STATIC bool isTruthy(Expression expr) {
-    InterpreterObj result = interpretExpr(expr);
+    InterpreterObj* result = interpretExpr(expr);
 
 }
 
@@ -184,12 +200,12 @@ STATIC void interpretStmt(Statement stmt) {
             break;
         }
         case StmtTag_Global: {
-            ObjNSSet(&globalScope()->objects, tokText(stmt.global.name), interpretExpr(stmt.global.initializer));
+            ObjNSSet(&_globalScope->objects, tokText(stmt.global.name), *interpretExpr(stmt.global.initializer));
             break;
         }
         case StmtTag_For: {
             pushScope();
-            ObjNSSet(&currentScope->objects, tokText(stmt.for_.iterator), interpretExpr(stmt.for_.min));
+            ObjNSSet(&currentScope->objects, tokText(stmt.for_.iterator), *interpretExpr(stmt.for_.min));
             Expression iterator = (Expression){
                 .tag = ExprTag_Primary,
                 .primary = stmt.for_.iterator,

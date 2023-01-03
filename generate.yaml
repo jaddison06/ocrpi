@@ -21,6 +21,7 @@ enums:
     - Proc
     - Class
   ObjType:
+    - Ref
     - Class
     - Func
     - Proc

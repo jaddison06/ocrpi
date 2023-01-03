@@ -15,11 +15,11 @@
 
 #define _Destroy(name) static inline void Destroy##name(name* map) { DESTROY(*map); }
 
-#define _Find(type, name) static inline type##Option name##Find(name* map, char* key) { \
+#define _Find(type, name) static inline type* name##Find(name* map, char* key) { \
     for (int i = 0; i < map->len; i++) { \
-        if (strcmp(map->root[i].key, key) == 0) return (type##Option){.value = map->root[i].value, .exists = true}; \
+        if (strcmp(map->root[i].key, key) == 0) return &map->root[i].value; \
     } \
-    return (type##Option){.exists = false}; \
+    return NULL; \
 }
 
 #define _Set(type, name) static inline void name##Set(name* map, char* key, type value) { \
@@ -46,10 +46,6 @@
         char* key; \
         type value; \
     } _##name##Entry; \
-    typedef struct { \
-        type value; \
-        bool exists; \
-    } type##Option; \
     DECL_VEC(_##name##Entry, name) \
     _NewMap(name) \
     _Destroy(name) \

@@ -63,15 +63,15 @@ DECL_MAP(int, IntMap)
 
 static void testMap() {
     IntMap intMap = NewIntMap();
-    expect(IntMapFind(&intMap, "eeee").exists == false);
+    expect(IntMapFind(&intMap, "eeee") == NULL);
     IntMapSet(&intMap, "eeee", 3);
-    expect(IntMapFind(&intMap, "eeee").exists == true);
-    expect(IntMapFind(&intMap, "eeee").value == 3);
+    expect(IntMapFind(&intMap, "eeee") != NULL);
+    expect(*IntMapFind(&intMap, "eeee") == 3);
     IntMapSet(&intMap, "eeee", 5);
-    expect(IntMapFind(&intMap, "eeee").exists == true);
-    expect(IntMapFind(&intMap, "eeee").value == 5);
+    expect(IntMapFind(&intMap, "eeee") != NULL);
+    expect(*IntMapFind(&intMap, "eeee") == 5);
     IntMapRemove(&intMap, "eeee");
-    expect(IntMapFind(&intMap, "eeee").exists == false);
+    expect(IntMapFind(&intMap, "eeee") == NULL);
 }
 
 static void _testAll() {
