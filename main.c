@@ -29,7 +29,7 @@ int main(int argc, char** argv) {
         // lex, parse, check, compile
         panic(Panic_Main, "Extended mode not supported yet!");
     } else {
-        panic(Panic_Main, "Unknown file extension!");
+        panic(Panic_Main, "Unknown file extension! (%s)", argv[1]);
     }
 }
 

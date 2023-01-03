@@ -152,10 +152,7 @@ STATIC InterpreterObj interpretExpr(Expression expr) {
                         searchScope = searchScope->parent;
                     }
                     if (searchScope == NULL) {
-                        char* prefix = "Unknown variable ";
-                        char* error = malloc(strlen(prefix) + strlen(text) + 3);
-                        sprintf(error, "%s%s!\n", prefix, error);
-                        panic(Panic_Interpreter, error);
+                        panic(Panic_Interpreter, "Unknown variable %s!\n", text);
                     }
                     out = obj.value;
                     break;
