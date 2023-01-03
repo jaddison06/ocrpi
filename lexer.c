@@ -167,7 +167,6 @@ static Token identifier() {
             break;
         case 'M': return makeTok(checkKeyword(1, "OD", Tok_Mod));
         case 'n':
-            // todo: test
             if (current - start == 3 && start[1] == 'i' && start[2] == 'l') return makeTok(Tok_Nil);
             if (current - start > 2 && start[1] == 'e') {
                 if (current - start == 3 && start[2] == 'w') return makeTok(Tok_New);
