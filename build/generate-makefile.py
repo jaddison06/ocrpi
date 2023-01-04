@@ -36,6 +36,7 @@ SOURCE_EXTS = ['.c']
 HEADER_EXTS = ['.h']
 PYTHON = 'python'
 CLOC = 'C:/Users/jjadd/Downloads/cloc-1.92.exe' if system() == 'Windows' else 'cloc'
+CODEGEN_CONFIG = 'generate.yaml'
 CODEGEN_OUTPUT = './generated'
 # If these files change, recompile EVERYTHING
 COMMON_DEPENDENCIES = []
@@ -112,6 +113,7 @@ def main():
     if system() == 'Windows' and not executable.endswith('.exe'): executable = f'{executable}.exe'
 
     run_item: Callable[[str, str], str] = lambda name, dep: makefile_item(name, [dep], [f'./{executable} $(source)'])
+    codegen_output_item: Callable[[str], str] = lambda ext: makefile_item(f'{CODEGEN_OUTPUT}{ext}', [CODEGEN_CONFIG], [f'{PYTHON} build/codegen.py {CODEGEN_CONFIG} {CODEGEN_OUTPUT}'])
     
     makefile = '.PHONY: makefile\n\n' \
     + makefile_item(
@@ -138,11 +140,13 @@ def main():
         [f'{PYTHON} build/generate-makefile.py']
     ) + makefile_item(
         'codegen',
-        [],
-        [
-            f'{PYTHON} build/codegen.py {CODEGEN_OUTPUT}'
-        ]
-    ) + makefile_item(
+        [f'{CODEGEN_OUTPUT}.c', f'{CODEGEN_OUTPUT}.h'],
+        []
+    ) + codegen_output_item(
+        '.c'
+    ) + codegen_output_item(
+        '.h'
+    )+ makefile_item(
         'clean',
         [],
         [
