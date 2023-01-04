@@ -1,11 +1,11 @@
 print("Hello, World!")
 
-function myPrint(value)
-    function inner(anotherValue)
-        print(anotherValue)
-    endfunction
-    inner(value)
+function getHello()
+    return "Hello, Globals"
 endfunction
 
-print(typeof(3))
-myPrint("Hello, Arguments!")
+function printHello()
+    print(getHello())
+endfunction
+
+printHello()

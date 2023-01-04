@@ -150,7 +150,9 @@ InterpreterObj* interpretExpr(Expression expr) {
                                     out = interpretExpr(currentDOR.return_);
                                     destroyScope(executionScope);
                                     currentScope = outerScope;
-                                    break;
+                                    // boo!
+                                    // (double break)
+                                    goto returned;
                                 }
                                 interpretDecl(*currentDOR.declaration);
                             }
@@ -158,7 +160,7 @@ InterpreterObj* interpretExpr(Expression expr) {
                             // we've interpreted everything in the func - why haven't we returned!!
                             panic(Panic_Interpreter, "Function %s must return a value!", tokText(calleeObj->func.name));
 
-                            break;
+                            returned: break;
                         }
                         case ObjType_Proc: {
 
