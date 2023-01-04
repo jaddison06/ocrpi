@@ -6,4 +6,4 @@ jobs:
     steps:
       - uses: actions/checkout@v2.6.0
       - run: python3.10 build/generate-makefile.py
-      - run: make run-debug
+      - run: make run-test
