@@ -1,1 +1,7 @@
 print("Hello, World!")
+
+function hello()
+    print("Hello, Procedures!")
+endfunction
+
+hello()

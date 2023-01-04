@@ -113,13 +113,15 @@ STATIC Expression super() {
     return grouping();
 }
 
-STATIC ExprList argList() {
+STATIC ExprList argList(TokType end) {
     ExprList out;
     INIT(out);
+    if (match(end)) return out;
     APPEND(out, expression());
     while (match(Tok_Comma)) {
         APPEND(out, expression());
     }
+    consume(end, "Expected close bracket after arguments");
     return out;
 }
 
@@ -139,14 +141,12 @@ STATIC Expression call() {
         switch (previous().type) {
             case Tok_LParen: {
                 out.call.tag = Call_Call;
-                out.call.arguments = argList();
-                consume(Tok_RParen, "Expected ')'");
+                out.call.arguments = argList(Tok_RParen);
                 break;
             }
             case Tok_LSquare: {
                 out.call.tag = Call_Array;
-                out.call.arguments = argList();
-                consume(Tok_RSquare, "Expected ']'");
+                out.call.arguments = argList(Tok_RSquare);
                 break;
             }
             case Tok_Dot: {

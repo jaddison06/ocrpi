@@ -53,7 +53,7 @@ STATIC ObjList parseArgs(CallExpr call) {
 }
 
 STATIC InterpreterObj* interpretExpr(Expression expr) {
-    InterpreterObj* out;
+    InterpreterObj* out = malloc(sizeof(InterpreterObj));
 
     switch (expr.tag) {
         case ExprTag_Unary: {
@@ -106,8 +106,11 @@ STATIC InterpreterObj* interpretExpr(Expression expr) {
                                 interpretDecl(*currentDOR.declaration);
                             }
 
-                            popScope();
-                            currentScope = outerScope;
+                            // we've interpreted everything in the func - why haven't we returned!!
+                            panic(Panic_Interpreter, "Function %s must return a value!", tokText(calleeObj->func.name));
+
+                            // popScope();
+                            // currentScope = outerScope;
 
                             break;
                         }
