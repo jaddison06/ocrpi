@@ -59,7 +59,9 @@ STATIC INLINE InterpreterObj* findObj(char* name) {
 }
 
 STATIC INLINE void setVar(char* name, InterpreterObj value) {
-    ObjNSSet(&currentScope->objects, name, value);
+    InterpreterObj* obj = findObj(name);
+    if (obj != NULL) *obj = value;
+    else ObjNSSet(&currentScope->objects, name, value);
 }
 
 //* needs destroy!
@@ -75,9 +77,6 @@ STATIC ObjList parseArgs(CallExpr call) {
 // todo: where do we alloc out? where do we free it?
 // sometimes we don't need it cos we want to return the ADDRESS!! not just the value - 
 // think getting objs for byRef passing
-//
-// also setVar refactor needed to use findObj - search parent scopes for the name before
-// creating a new val!
 //
 // (issue being this'd create duplication with both findObj and ObjNSSet searching in the current scope - 
 // create a forced XXXNSSet alternative which just appends w/o searching for the name? Or something similar -
