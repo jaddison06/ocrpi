@@ -16,21 +16,30 @@ struct Scope {
 };
 
 static Scope* currentScope = NULL;
-static Scope* _globalScope = NULL;
+static Scope* globalScope = NULL;
+
+STATIC Scope* newScope() {
+    Scope* out = malloc(sizeof(Scope));
+    out->objects = NewObjNS();
+    return out;
+}
+
+STATIC void destroyScope(Scope* scope) {
+    DESTROY(scope->objects);
+    free(scope);
+}
 
 STATIC void pushScope() {
     Scope* oldScope = currentScope;
-    currentScope = malloc(sizeof(Scope));
+    currentScope = newScope();
     currentScope->parent = oldScope;
-    currentScope->objects = NewObjNS();
-    if (oldScope == NULL) _globalScope = currentScope;
+    if (oldScope == NULL) globalScope = currentScope;
 }
 
 STATIC void popScope() {
     if (currentScope == NULL) panic(Panic_Interpreter, "Can't exit the root scope!");
     Scope* parentScope = currentScope->parent;
-    DESTROY(currentScope->objects);
-    free(currentScope);
+    destroyScope(currentScope);
     currentScope = parentScope;
 }
 
@@ -109,30 +118,38 @@ InterpreterObj* interpretExpr(Expression expr) {
 
                     switch (calleeObj->tag) {
                         case ObjType_Func: {
-                            Scope* outerScope = currentScope;
+                            // Create a new scope as the function's context
+                            Scope* executionScope = newScope();
                             // no closures for you!!
-                            currentScope = _globalScope;
-                            pushScope();
+                            executionScope->parent = globalScope;
 
                             if (expr.call.arguments.len != calleeObj->func.params.len)
                                 panic(Panic_Interpreter, "Called function %s with %i args instead of %i", tokText(calleeObj->func.name), expr.call.arguments.len, calleeObj->func.params.len);
 
+                            // Evaluate function arguments in the CURRENT SCOPE, adding results to the NEW SCOPE
                             for (int i = 0; i < expr.call.arguments.len; i++) {
                                 InterpreterObj* arg = interpretExpr(expr.call.arguments.root[i]);
                                 if (calleeObj->func.params.root[i].passMode == Param_byRef) {
-                                    setVar(tokText(calleeObj->func.params.root[i].name), (InterpreterObj){
+                                    ObjNSSet(&executionScope->objects, tokText(calleeObj->func.params.root[i].name), (InterpreterObj){
                                         .tag = ObjType_Ref,
                                         .reference = arg
                                     });
                                 } else {
-                                    setVar(tokText(calleeObj->func.params.root[i].name), *arg);
+                                    ObjNSSet(&executionScope->objects, tokText(calleeObj->func.params.root[i].name), *arg);
                                 }
                             }
+
+                            // Now we've evaluated the arguments, we can setup the scope as the
+                            // function's execution context.
+                            Scope* outerScope = currentScope;
+                            currentScope = executionScope;
 
                             for (int i = 0; i < calleeObj->func.block.len; i++) {
                                 DeclOrReturn currentDOR = calleeObj->func.block.root[i];
                                 if (currentDOR.tag == DOR_return) {
                                     out = interpretExpr(currentDOR.return_);
+                                    destroyScope(executionScope);
+                                    currentScope = outerScope;
                                     break;
                                 }
                                 interpretDecl(*currentDOR.declaration);
@@ -140,9 +157,6 @@ InterpreterObj* interpretExpr(Expression expr) {
 
                             // we've interpreted everything in the func - why haven't we returned!!
                             panic(Panic_Interpreter, "Function %s must return a value!", tokText(calleeObj->func.name));
-
-                            // popScope();
-                            // currentScope = outerScope;
 
                             break;
                         }
@@ -231,7 +245,7 @@ STATIC void interpretStmt(Statement stmt) {
             break;
         }
         case StmtTag_Global: {
-            ObjNSSet(&_globalScope->objects, tokText(stmt.global.name), *interpretExpr(stmt.global.initializer));
+            ObjNSSet(&globalScope->objects, tokText(stmt.global.name), *interpretExpr(stmt.global.initializer));
             break;
         }
         case StmtTag_For: {

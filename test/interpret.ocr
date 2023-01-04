@@ -1,8 +1,11 @@
 print("Hello, World!")
 
 function myPrint(value)
-    print(value)
+    function inner(anotherValue)
+        print(anotherValue)
+    endfunction
+    inner(value)
 endfunction
 
 print(typeof(3))
-myPrint(1.5)
+myPrint("Hello, Arguments!")
