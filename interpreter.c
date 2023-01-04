@@ -70,7 +70,12 @@ STATIC void popScope() {
     currentScope = parentScope;
 }
 
+STATIC void interpretDecl(Declaration decl);
 STATIC void interpretBlock(DeclList block);
+
+INLINE void setVar(char* name, InterpreterObj value) {
+    ObjNSSet(&currentScope->objects, name, value);
+}
 
 STATIC InterpreterObj* interpretExpr(Expression expr) {
     InterpreterObj* out;
@@ -85,31 +90,50 @@ STATIC InterpreterObj* interpretExpr(Expression expr) {
         case ExprTag_Call: {
             switch (expr.call.tag) {
                 case Call_Call: {
-                    InterpreterObj* callee = interpretExpr(*expr.call.callee);
+                    InterpreterObj* calleeObj = interpretExpr(*expr.call.callee);
                     if (!(
-                        callee->tag == ObjType_Func ||
-                        callee->tag == ObjType_Proc ||
-                        callee->tag == ObjType_NativeFunc ||
-                        callee->tag == ObjType_NativeProc
+                        calleeObj->tag == ObjType_Func ||
+                        calleeObj->tag == ObjType_Proc ||
+                        calleeObj->tag == ObjType_NativeFunc ||
+                        calleeObj->tag == ObjType_NativeProc
                     )) {
                         panic(Panic_Interpreter, "Can't call this object!");
                     }
-                    switch (callee->tag) {
+                    switch (calleeObj->tag) {
                         case ObjType_Func: {
-                            Scope* oldScope = currentScope;
+                            Scope* outerScope = currentScope;
+                            // no closures for you!!
                             currentScope = _globalScope;
-                            if (expr.call.arguments.len != callee->func.params.len)
-                                panic(Panic_Interpreter, "Called function %s with %i args instead of %i", tokText(callee->func.name), expr.call.arguments.len, callee->func.params.len);
+                            if (expr.call.arguments.len != calleeObj->func.params.len)
                             pushScope();
+
+                                panic(Panic_Interpreter, "Called function %s with %i args instead of %i", tokText(calleeObj->func.name), expr.call.arguments.len, calleeObj->func.params.len);
+
                             for (int i = 0; i < expr.call.arguments.len; i++) {
                                 InterpreterObj* arg = interpretExpr(expr.call.arguments.root[i]);
-                                if (callee->func.params.root[i].passMode == Param_byRef) {
-                                    ObjNSSet(&currentScope->objects, tokText(callee->func.params.root[i].name), (InterpreterObj){
+                                if (calleeObj->func.params.root[i].passMode == Param_byRef) {
+                                    setVar(tokText(calleeObj->func.params.root[i].name), (InterpreterObj){
                                         .tag = ObjType_Ref,
                                         .reference = arg
                                     });
+                                } else {
+                                    setVar(tokText(calleeObj->func.params.root[i].name), *arg);
                                 }
                             }
+
+                            for (int i = 0; i < calleeObj->func.block.len; i++) {
+                                DeclOrReturn currentDOR = calleeObj->func.block.root[i];
+                                if (currentDOR.tag == DOR_return) {
+                                    out = interpretExpr(currentDOR.return_);
+                                    break;
+                                }
+                                interpretDecl(*currentDOR.declaration);
+                            }
+
+                            popScope();
+                            currentScope = outerScope;
+
+                            break;
                         }
                         case ObjType_Proc: {
 
@@ -205,7 +229,7 @@ STATIC void interpretStmt(Statement stmt) {
         }
         case StmtTag_For: {
             pushScope();
-            ObjNSSet(&currentScope->objects, tokText(stmt.for_.iterator), *interpretExpr(stmt.for_.min));
+            setVar(tokText(stmt.for_.iterator), *interpretExpr(stmt.for_.min));
             Expression iterator = (Expression){
                 .tag = ExprTag_Primary,
                 .primary = stmt.for_.iterator,
@@ -294,14 +318,14 @@ STATIC void interpretStmt(Statement stmt) {
 }
 
 STATIC void interpretProc(ProcDecl proc) {
-    ObjNSSet(&currentScope->objects, tokText(proc.name), (InterpreterObj){
+    setVar(tokText(proc.name), (InterpreterObj){
         .tag = ObjType_Proc,
         .proc = proc
     });
 }
 
 STATIC void interpretFun(FunDecl func) {
-    ObjNSSet(&currentScope->objects, tokText(func.name), (InterpreterObj){
+    setVar(tokText(func.name), (InterpreterObj){
         .tag = ObjType_Func,
         .func = func
     });
@@ -311,27 +335,30 @@ STATIC void interpretClass(ClassDecl class) {
 
 }
 
+STATIC void interpretDecl(Declaration decl) {
+    switch (decl.tag) {
+        case DeclTag_Class: {
+            interpretClass(decl.class);
+            break;
+        }
+        case DeclTag_Fun: {
+            interpretFun(decl.fun);
+            break;
+        }
+        case DeclTag_Proc: {
+            interpretProc(decl.proc);
+            break;
+        }
+        case DeclTag_Stmt: {
+            interpretStmt(decl.stmt);
+            break;
+        }
+    }
+}
+
 STATIC void interpretBlock(DeclList block) {
     for (int i = 0; i < block.len; i++) {
-        Declaration currentDecl = block.root[i];
-        switch (currentDecl.tag) {
-            case DeclTag_Class: {
-                interpretClass(currentDecl.class);
-                break;
-            }
-            case DeclTag_Fun: {
-                interpretFun(currentDecl.fun);
-                break;
-            }
-            case DeclTag_Proc: {
-                interpretProc(currentDecl.proc);
-                break;
-            }
-            case DeclTag_Stmt: {
-                interpretStmt(currentDecl.stmt);
-                break;
-            }
-        }
+        interpretDecl(block.root[i]);
     }
 }
 
