@@ -40,4 +40,5 @@ struct InterpreterObj {
     };
 };
 
+InterpreterObj* interpretExpr(Expression expr);
 void interpret(ParseOutput po);

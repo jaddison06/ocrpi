@@ -6,6 +6,7 @@
 
 #include "lexer.h"
 #include "parser.h"
+#include "interpreter.h"
 #include "readFile.h"
 #include "map.h"
 
@@ -202,6 +203,20 @@ static void _testAll() {
 
     module = "map";
     testMap();
+
+    module = "interpreter";
+    InterpreterObj* result = interpretExpr((Expression){
+        .tag = ExprTag_Primary,
+        .primary = (Token){
+            .col = 0,
+            .length = 7,
+            .line = 0,
+            .start = "\"balls\"",
+            .type = Tok_StringLit
+        }
+    });
+    expect(result->tag == ObjType_String);
+    expectStr(result->string, "balls");
 }
 
 void testAll() {

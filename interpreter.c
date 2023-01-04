@@ -198,7 +198,7 @@ STATIC bool isTruthy(Expression expr) {
 
 }
 
-STATIC void interpretStmt(Statement stmt) {
+void interpretStmt(Statement stmt) {
     switch (stmt.tag) {
         case StmtTag_Expr: {
             interpretExpr(stmt.expr);
