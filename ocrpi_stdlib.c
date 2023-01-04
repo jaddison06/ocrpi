@@ -1,5 +1,19 @@
 #include "ocrpi_stdlib.h"
 
+#include "panic.h"
+
+#define ANY -1
+
+static inline void checkTypes(int count, ObjType types[], ObjList arguments) {
+    if (arguments.len != count) panic(Panic_Stdlib, "Expected %i arguments but got %i!", count, arguments.len);
+    for (int i = 0; i < count; i++) {
+        if (types[i] == ANY) continue;
+        if (arguments.root[i].tag != types[i]) panic(Panic_Stdlib, "Expected argument of type %s, but got %s!", ObjTypeToString(types[i]), ObjTypeToString(arguments.root[i].tag));
+    }
+}
+
+#define TYPELIST(types) (ObjType[]){types}
+
 static void printObj(InterpreterObj obj) {
     switch (obj.tag) {
         case ObjType_Ref: {
@@ -41,6 +55,7 @@ static void printObj(InterpreterObj obj) {
         }
         case ObjType_Float: {
             printf("%f", obj.float_);
+            break;
         }
         case ObjType_Array: {
             printf("[");
@@ -63,4 +78,12 @@ void stl_print(ObjList args) {
         printObj(args.root[i]);
     }
     printf("\n");
+}
+
+InterpreterObj stl_typeof(ObjList args) {
+    checkTypes(1, TYPELIST(ANY), args);
+    return (InterpreterObj){
+        .tag = ObjType_String,
+        .string = ObjTypeToString(args.root[0].tag)
+    };
 }

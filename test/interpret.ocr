@@ -4,4 +4,5 @@ function myPrint(value)
     print(value)
 endfunction
 
-myPrint("Hello, Arguments!")
+print(typeof(3))
+myPrint(1.5)

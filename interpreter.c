@@ -118,7 +118,9 @@ InterpreterObj* interpretExpr(Expression expr) {
 
                         }
                         case ObjType_NativeFunc: {
-
+                            ObjList args = parseArgs(expr.call);
+                            *out = calleeObj->nativeFunc(args);
+                            DESTROY(args);
                         }
                         case ObjType_NativeProc: {
                             ObjList args = parseArgs(expr.call);
@@ -354,6 +356,7 @@ typedef struct {
 } STLProcDef;
 
 STATIC STLFuncDef stl_funcs[] = {
+    {"typeof", stl_typeof},
     {"", NULL}
 };
 
