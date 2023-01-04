@@ -38,6 +38,17 @@ InterpreterObj* interpretExpr(Expression expr);
 STATIC void interpretDecl(Declaration decl);
 STATIC void interpretBlock(DeclList block);
 
+STATIC INLINE InterpreterObj* findObj(char* name) {
+    Scope* searchScope = currentScope;
+    InterpreterObj* obj = NULL;
+    while (searchScope != NULL) {
+        obj = ObjNSFind(&searchScope->objects, name);
+        if (obj != NULL) break;
+        searchScope = searchScope->parent;
+    }
+    return obj;
+}
+
 STATIC INLINE void setVar(char* name, InterpreterObj value) {
     ObjNSSet(&currentScope->objects, name, value);
 }
@@ -52,6 +63,24 @@ STATIC ObjList parseArgs(CallExpr call) {
     return out;
 }
 
+// todo: where do we alloc out? where do we free it?
+// sometimes we don't need it cos we want to return the ADDRESS!! not just the value - 
+// think getting objs for byRef passing
+//
+// also setVar refactor needed to use findObj - search parent scopes for the name before
+// creating a new val!
+//
+// (issue being this'd create duplication with both findObj and ObjNSSet searching in the current scope - 
+// create a forced XXXNSSet alternative which just appends w/o searching for the name? Or something similar -
+// risky but we don't want to be searching the NS twice for the target if we already know we want to declare it as
+// a new var. Or do we?? It's 3:15am and I don't know if i actually genuinely care that much about nitpicking performance - 
+// this interpreter is really only a halfway step to the eventual compiler. Does it matter!!!!!!!!)
+//
+// Eventual expressions - want to use em print em and test em !! (this is the reason for the setVar rabbit hole - was thinking
+// about assignment expression evaluation)
+//
+// goodnight!!!!!!!!!!!
+
 InterpreterObj* interpretExpr(Expression expr) {
     InterpreterObj* out = malloc(sizeof(InterpreterObj));
 
@@ -60,6 +89,9 @@ InterpreterObj* interpretExpr(Expression expr) {
             break;
         }
         case ExprTag_Binary: {
+            switch (expr.binary.operator.type) {
+                
+            }
             break;
         }
         case ExprTag_Call: {
@@ -174,16 +206,8 @@ InterpreterObj* interpretExpr(Expression expr) {
                     break;
                 }
                 case Tok_Identifier: {
-                    Scope* searchScope = currentScope;
-                    InterpreterObj* obj;
-                    while (searchScope != NULL) {
-                        obj = ObjNSFind(&searchScope->objects, text);
-                        if (obj != NULL) break;
-                        searchScope = searchScope->parent;
-                    }
-                    if (searchScope == NULL) {
-                        panic(Panic_Interpreter, "Unknown variable %s!\n", text);
-                    }
+                    InterpreterObj* obj = findObj(text);
+                    if (obj == NULL) panic(Panic_Interpreter, "Unknown variable %s!\n", text);
                     out = obj;
                     break;
                 }

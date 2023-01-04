@@ -82,7 +82,6 @@ def main():
     test_defines  = defines_str(TEST_DEFINES)
 
     if f'{CODEGEN_OUTPUT}.c' not in source_files:
-        print('generated files not found!!')
         source_files.append(f'{CODEGEN_OUTPUT}.c')
         headers[CODEGEN_OUTPUT] = f'{CODEGEN_OUTPUT}.h'
 
