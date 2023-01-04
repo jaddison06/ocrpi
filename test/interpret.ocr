@@ -8,4 +8,5 @@ function printHello()
     print(getHello())
 endfunction
 
+print(typeof(print("eeeee")))
 printHello()

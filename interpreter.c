@@ -61,6 +61,7 @@ STATIC INLINE InterpreterObj* findObj(char* name) {
 STATIC INLINE void setVar(char* name, InterpreterObj value) {
     InterpreterObj* obj = findObj(name);
     if (obj != NULL) *obj = value;
+    // todo: searches, we already know it won't find anthing
     else ObjNSSet(&currentScope->objects, name, value);
 }
 
@@ -74,21 +75,47 @@ STATIC ObjList parseArgs(CallExpr call) {
     return out;
 }
 
-// todo: where do we alloc out? where do we free it?
-// sometimes we don't need it cos we want to return the ADDRESS!! not just the value - 
-// think getting objs for byRef passing
-//
-// (issue being this'd create duplication with both findObj and ObjNSSet searching in the current scope - 
-// create a forced XXXNSSet alternative which just appends w/o searching for the name? Or something similar -
-// risky but we don't want to be searching the NS twice for the target if we already know we want to declare it as
-// a new var. Or do we?? It's 3:15am and I don't know if i actually genuinely care that much about nitpicking performance - 
-// this interpreter is really only a halfway step to the eventual compiler. Does it matter!!!!!!!!)
-//
-// Eventual expressions - want to use em print em and test em !! (this is the reason for the setVar rabbit hole - was thinking
-// about assignment expression evaluation)
-//
-// goodnight!!!!!!!!!!!
+// 3 types of lvalue:
+//   - call().member = value
+//   - identifier = value
+//   - (lvalue = assignedValue) = anotherAssignedValue <-- normally useless but kinda nice if you want to take a reference to the lvalue of an assignment!!
+STATIC bool isLvalue(Expression expr) {
+    if (
+        (expr.tag == ExprTag_Call && expr.call.tag == Call_GetMember) ||
+        (expr.tag == ExprTag_Primary && expr.primary.type == Tok_Identifier) ||
+        (expr.tag == ExprTag_Binary && (
+            expr.binary.operator.type == Tok_Equal ||
+            expr.binary.operator.type == Tok_ExpEqual ||
+            expr.binary.operator.type == Tok_StarEqual ||
+            expr.binary.operator.type == Tok_SlashEqual ||
+            expr.binary.operator.type == Tok_PlusEqual ||
+            expr.binary.operator.type == Tok_MinusEqual
+        ))
+    ) return true;
 
+    return false;
+}
+
+STATIC INLINE void assign(char* name, Expression* a, InterpreterObj b) {
+    if (!isLvalue(*a)) panic(Panic_Interpreter, "Can't assign - not an lvalue! (%s)", ExprTagToString(a->tag));
+    InterpreterObj* target = interpretExpr(*a);
+    *target = b;
+}
+
+InterpreterObj binaryExpr(TokType operator, Expression* a, Expression* b) {
+    switch (operator) {
+        case Tok_Equal: {
+            
+        }
+        case Tok_ExpEqual: {
+            binaryExpr(Tok_Equal, a, binaryExpr(Tok_Exp, a, b));
+        }
+    }
+}
+
+// todo: where do we alloc out? where do we free it?
+// sometimes we don't need it allocated cos we want to return the ADDRESS!! not just the value - 
+// think evaluating variables for byRef passing
 InterpreterObj* interpretExpr(Expression expr) {
     InterpreterObj* out = malloc(sizeof(InterpreterObj));
 
@@ -97,9 +124,7 @@ InterpreterObj* interpretExpr(Expression expr) {
             break;
         }
         case ExprTag_Binary: {
-            switch (expr.binary.operator.type) {
-                
-            }
+            *out = binaryExpr(expr.binary.operator.type, expr.binary.a, expr.binary.b);
             break;
         }
         case ExprTag_Call: {
@@ -129,6 +154,8 @@ InterpreterObj* interpretExpr(Expression expr) {
                             for (int i = 0; i < expr.call.arguments.len; i++) {
                                 InterpreterObj* arg = interpretExpr(expr.call.arguments.root[i]);
                                 if (calleeObj->func.params.root[i].passMode == Param_byRef) {
+                                    // todo: error if not an lvalue (what is an lvalue!!!!!!)
+                                    // allow assignment as an lvalue?? (`a = 3` returns a instead of 3)
                                     ObjNSSet(&executionScope->objects, tokText(calleeObj->func.params.root[i].name), (InterpreterObj){
                                         .tag = ObjType_Ref,
                                         .reference = arg
@@ -162,17 +189,20 @@ InterpreterObj* interpretExpr(Expression expr) {
                             returned: break;
                         }
                         case ObjType_Proc: {
-
+                            break;
                         }
                         case ObjType_NativeFunc: {
                             ObjList args = parseArgs(expr.call);
                             *out = calleeObj->nativeFunc(args);
                             DESTROY(args);
+                            break;
                         }
                         case ObjType_NativeProc: {
                             ObjList args = parseArgs(expr.call);
                             calleeObj->nativeProc(args);
                             DESTROY(args);
+                            out->tag = ObjType_Nil;
+                            break;
                         }
                     }
                     break;
