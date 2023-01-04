@@ -27,8 +27,8 @@ STATIC void pushScope() {
 }
 
 STATIC void popScope() {
+    if (currentScope == NULL) panic(Panic_Interpreter, "Can't exit the root scope!");
     Scope* parentScope = currentScope->parent;
-    if (parentScope == NULL) panic(Panic_Interpreter, "Can't exit the root scope!");
     DESTROY(currentScope->objects);
     free(currentScope);
     currentScope = parentScope;
