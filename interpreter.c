@@ -2,45 +2,9 @@
 
 #include <stdlib.h>
 
-#include "generated.h"
 #include "common.h"
-#include "map.h"
 #include "panic.h"
-
-typedef struct InterpreterObj InterpreterObj;
-DECL_VEC(InterpreterObj, ObjList);
-
-DECL_MAP(FunDecl, FuncNS)
-DECL_MAP(ProcDecl, ProcNS)
-
-typedef void (*NativeProc)(ObjList);
-typedef InterpreterObj (*NativeFunc)(ObjList);
-
-typedef struct {
-    FuncNS funcs;
-    ProcNS procs;
-} ClassObj;
-
-typedef struct {
-    ClassObj class;
-} InstanceObj;
-
-struct InterpreterObj {
-    ObjType tag;
-    union {
-        char* string;
-        int int_;
-        float float_;
-        FunDecl func;
-        ProcDecl proc;
-        NativeFunc nativeFunc;
-        NativeProc nativeProc;
-        ClassObj class;
-        ObjList array;
-        InstanceObj instance;
-        InterpreterObj* reference;
-    };
-};
+#include "ocrpi_stdlib.h"
 
 DECL_MAP(InterpreterObj, ObjNS);
 
@@ -70,11 +34,22 @@ STATIC void popScope() {
     currentScope = parentScope;
 }
 
+STATIC InterpreterObj* interpretExpr(Expression expr);
 STATIC void interpretDecl(Declaration decl);
 STATIC void interpretBlock(DeclList block);
 
-INLINE void setVar(char* name, InterpreterObj value) {
+STATIC INLINE void setVar(char* name, InterpreterObj value) {
     ObjNSSet(&currentScope->objects, name, value);
+}
+
+//* needs destroy!
+STATIC ObjList parseArgs(CallExpr call) {
+    ObjList out;
+    INIT(out);
+    for (int i = 0; i < call.arguments.len; i++) {
+        APPEND(out, *interpretExpr(call.arguments.root[i]));
+    }
+    return out;
 }
 
 STATIC InterpreterObj* interpretExpr(Expression expr) {
@@ -91,23 +66,24 @@ STATIC InterpreterObj* interpretExpr(Expression expr) {
             switch (expr.call.tag) {
                 case Call_Call: {
                     InterpreterObj* calleeObj = interpretExpr(*expr.call.callee);
+
                     if (!(
                         calleeObj->tag == ObjType_Func ||
                         calleeObj->tag == ObjType_Proc ||
                         calleeObj->tag == ObjType_NativeFunc ||
                         calleeObj->tag == ObjType_NativeProc
-                    )) {
+                    ))
                         panic(Panic_Interpreter, "Can't call this object!");
-                    }
+
+                    if (expr.call.arguments.len != calleeObj->func.params.len)
+                        panic(Panic_Interpreter, "Called function %s with %i args instead of %i", tokText(calleeObj->func.name), expr.call.arguments.len, calleeObj->func.params.len);
+
                     switch (calleeObj->tag) {
                         case ObjType_Func: {
                             Scope* outerScope = currentScope;
                             // no closures for you!!
                             currentScope = _globalScope;
-                            if (expr.call.arguments.len != calleeObj->func.params.len)
                             pushScope();
-
-                                panic(Panic_Interpreter, "Called function %s with %i args instead of %i", tokText(calleeObj->func.name), expr.call.arguments.len, calleeObj->func.params.len);
 
                             for (int i = 0; i < expr.call.arguments.len; i++) {
                                 InterpreterObj* arg = interpretExpr(expr.call.arguments.root[i]);
@@ -139,10 +115,12 @@ STATIC InterpreterObj* interpretExpr(Expression expr) {
 
                         }
                         case ObjType_NativeFunc: {
-                            
+
                         }
                         case ObjType_NativeProc: {
-
+                            ObjList args = parseArgs(expr.call);
+                            calleeObj->nativeProc(args);
+                            DESTROY(args);
                         }
                     }
                     break;
@@ -362,8 +340,44 @@ STATIC void interpretBlock(DeclList block) {
     }
 }
 
+typedef struct {
+    char* name;
+    NativeFunc func;
+} STLFuncDef;
+
+typedef struct {
+    char* name;
+    NativeProc proc;
+} STLProcDef;
+
+STATIC STLFuncDef stl_funcs[] = {
+    {"", NULL}
+};
+
+STATIC STLProcDef stl_procs[] = {
+    {"print", stl_print},
+    {"", NULL}
+};
+
+STATIC void setupSTL() {
+    for (int i = 0; stl_funcs[i].name[0] != '\0'; i++) {
+        setVar(stl_funcs[i].name, (InterpreterObj){
+            .tag = ObjType_NativeFunc,
+            .nativeFunc = stl_funcs[i].func
+        });
+    }
+
+    for (int i = 0; stl_procs[i].name[0] != '\0'; i++) {
+        setVar(stl_procs[i].name, (InterpreterObj){
+            .tag = ObjType_NativeProc,
+            .nativeProc = stl_procs[i].proc
+        });
+    }
+}
+
 void interpret(ParseOutput po) {
     pushScope();
+    setupSTL();
     interpretBlock(po.ast);
     popScope();
 }
