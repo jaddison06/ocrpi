@@ -29,7 +29,7 @@ typedef enum {
 
 #define PANIC_CATCHABLE(panicCode, catchCode) _PANIC_CATCHABLE_FLAG | (catchCode << 8) | panicCode
 
-jmp_buf _panicJump;
+extern jmp_buf _panicJump;
 
 #define PANIC_TRY { _catchPanic(); uint16_t _panicRet = setjmp(_panicJump); bool caught = false; if (!_panicRet) {
 

@@ -7,6 +7,7 @@
 
 #include "vector.h"
 
+jmp_buf _panicJump;
 static bool shouldJump = false;
 
 void _catchPanic()  { shouldJump = true;  }
