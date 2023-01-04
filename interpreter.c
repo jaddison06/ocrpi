@@ -98,8 +98,15 @@ STATIC bool isLvalue(Expression expr) {
 
 STATIC INLINE void assign(char* name, Expression* a, InterpreterObj b) {
     if (!isLvalue(*a)) panic(Panic_Interpreter, "Can't assign - not an lvalue! (%s)", ExprTagToString(a->tag));
-    InterpreterObj* target = interpretExpr(*a);
-    *target = b;
+    // assignment or initialization!!
+    PANIC_TRY {
+        // try and find the object and assign to it
+        InterpreterObj* target = interpretExpr(*a);
+        *target = b;
+    } PANIC_CATCH(PCC_InterpreterUnknownVar) {
+        
+    }
+    PANIC_END_TRY;
 }
 
 InterpreterObj binaryExpr(TokType operator, Expression* a, Expression* b) {
@@ -252,7 +259,7 @@ InterpreterObj* interpretExpr(Expression expr) {
                 }
                 case Tok_Identifier: {
                     InterpreterObj* obj = findObj(text);
-                    if (obj == NULL) panic(Panic_Interpreter, "Unknown variable %s!\n", text);
+                    if (obj == NULL) panic(PANIC_CATCHABLE(Panic_Interpreter, PCC_InterpreterUnknownVar), "Unknown variable %s!\n", text);
                     out = obj;
                     break;
                 }
