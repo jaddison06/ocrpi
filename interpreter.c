@@ -34,7 +34,7 @@ STATIC void popScope() {
     currentScope = parentScope;
 }
 
-STATIC InterpreterObj* interpretExpr(Expression expr);
+InterpreterObj* interpretExpr(Expression expr);
 STATIC void interpretDecl(Declaration decl);
 STATIC void interpretBlock(DeclList block);
 
@@ -52,7 +52,7 @@ STATIC ObjList parseArgs(CallExpr call) {
     return out;
 }
 
-STATIC InterpreterObj* interpretExpr(Expression expr) {
+InterpreterObj* interpretExpr(Expression expr) {
     InterpreterObj* out = malloc(sizeof(InterpreterObj));
 
     switch (expr.tag) {
@@ -198,7 +198,7 @@ STATIC bool isTruthy(Expression expr) {
 
 }
 
-void interpretStmt(Statement stmt) {
+STATIC void interpretStmt(Statement stmt) {
     switch (stmt.tag) {
         case StmtTag_Expr: {
             interpretExpr(stmt.expr);

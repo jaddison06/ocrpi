@@ -1,7 +1,7 @@
 print("Hello, World!")
 
-function hello()
-    print("Hello, Procedures!")
+function myPrint(value)
+    print(value)
 endfunction
 
-hello()
+myPrint("Hello, Arguments!")
