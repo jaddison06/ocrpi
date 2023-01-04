@@ -115,7 +115,7 @@ InterpreterObj binaryExpr(TokType operator, Expression* a, Expression* b) {
             
         }
         case Tok_ExpEqual: {
-            binaryExpr(Tok_Equal, a, binaryExpr(Tok_Exp, a, b));
+            // binaryExpr(Tok_Equal, a, binaryExpr(Tok_Exp, a, b));
         }
     }
 }

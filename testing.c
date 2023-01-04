@@ -7,6 +7,8 @@
 #include "lexer.h"
 #include "parser.h"
 #include "interpreter.h"
+#include "panic.h"
+
 #include "readFile.h"
 #include "map.h"
 
@@ -73,6 +75,11 @@ static void testMap() {
     expect(*IntMapFind(&intMap, "eeee") == 5);
     IntMapRemove(&intMap, "eeee");
     expect(IntMapFind(&intMap, "eeee") == NULL);
+}
+
+static void panickingFunc() {
+    printf("panicking\n");
+    panic(PANIC_CATCHABLE(Panic_Test, PCC_Test), "balls!!!!!!!");
 }
 
 static void _testAll() {
@@ -217,6 +224,15 @@ static void _testAll() {
     });
     expect(result->tag == ObjType_String);
     expectStr(result->string, "balls");
+
+    module = "panic";
+    PANIC_TRY {
+        panickingFunc();
+    } PANIC_CATCH(PCC_Test) {
+        expect((_panicRet & _PANIC_CODE_MASK) == Panic_Test);
+        expect((_panicRet & _PANIC_CATCHABLE_CODE_MASK) >> 8 == PCC_Test);
+        expect(_panicRet & _PANIC_CATCHABLE_FLAG);
+    } PANIC_END_TRY
 }
 
 void testAll() {
