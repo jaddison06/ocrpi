@@ -58,7 +58,7 @@ def fs_cmd(*args: str) -> str:
 
 def defines_str(definesList: dict[str, str]) -> str:
     out = ''
-    for k, v in DEBUG_DEFINES.items():
+    for k, v in definesList.items():
         out += f'-D {k}={v} '
     out = out.strip()
     return out
@@ -125,7 +125,7 @@ def main():
     ) + makefile_item(
         'test',
         ['codegen'] + test_objects,
-        [f'{COMPILER} -g -rdynamic {" ".join(debug_objects)} -o {executable}{libs_str}']
+        [f'{COMPILER} -g -rdynamic {" ".join(test_objects)} -o {executable}{libs_str}']
     ) + run_item(
         'run', 'all'
     ) + run_item(
