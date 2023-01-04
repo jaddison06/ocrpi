@@ -5,6 +5,7 @@ import os.path as path
 from sys import argv
 from shutil import rmtree
 from platform import system
+from typing import Callable
 
 def makefile_item(name: str, dependencies: list[str], commands: list[str]) -> str:
     out = f'{name}:'
@@ -28,6 +29,7 @@ def all_with_extension(*exts: str) -> list[str]:
 
 COMPILER = 'gcc'
 DEBUG_DEFINES: dict[str, str] = {'OCRPI_DEBUG': '1'}
+TEST_DEFINES: dict[str, str] = {**DEBUG_DEFINES, 'OCRPI_TEST': '1'}
 LIBS: dict[str, list[str]] = {}
 EXECUTABLE = 'ocrpi'
 SOURCE_EXTS = ['.c']
@@ -54,6 +56,13 @@ def fs_util():
 def fs_cmd(*args: str) -> str:
     return f'{PYTHON} build/generate-makefile.py {" ".join(args)}'
 
+def defines_str(definesList: dict[str, str]) -> str:
+    out = ''
+    for k, v in DEBUG_DEFINES.items():
+        out += f'-D {k}={v} '
+    out = out.strip()
+    return out
+
 def main():
     if len(argv) > 1:
         fs_util()
@@ -66,11 +75,10 @@ def main():
 
     objects: list[str] = []
     debug_objects: list[str] = []
+    test_objects: list[str] = []
 
-    defines_str = ''
-    for k, v in DEBUG_DEFINES.items():
-        defines_str += f'-D {k}={v} '
-    defines_str = defines_str.strip()
+    debug_defines = defines_str(DEBUG_DEFINES)
+    test_defines  = defines_str(TEST_DEFINES)
 
     if f'{CODEGEN_OUTPUT}.c' not in source_files:
         print('generated files not found!!')
@@ -80,17 +88,20 @@ def main():
     for file in source_files:
         dirname = 'build/objects/' + path.dirname(file)
         base = path.splitext(file)[0]
-        obj_name       = 'build/objects/' + base + '.o'
-        debug_obj_name = 'build/objects/' + base + '-debug.o'
+        obj_name       = f'build/objects/{base}.o'
+        debug_obj_name = f'build/objects/{base}-debug.o'
+        test_obj_name  = f'build/objects/{base}-test.o'
         dependencies = [file]
         if base in headers: dependencies.append(headers[base])
         dependencies += COMMON_DEPENDENCIES
 
         makefile += makefile_item(obj_name,       dependencies, [fs_cmd('mkdir', dirname), f'{COMPILER} -c {file} -I. -o {obj_name}'])
-        makefile += makefile_item(debug_obj_name, dependencies, [fs_cmd('mkdir', dirname), f'{COMPILER} -g {defines_str} -c {file} -I. -o {debug_obj_name}'])
+        makefile += makefile_item(debug_obj_name, dependencies, [fs_cmd('mkdir', dirname), f'{COMPILER} -g {debug_defines} -c {file} -I. -o {debug_obj_name}'])
+        makefile += makefile_item(test_obj_name,  dependencies, [fs_cmd('mkdir', dirname), f'{COMPILER} -g {test_defines} -c {file} -I. -o {test_obj_name}'])
 
         objects.append(obj_name)
         debug_objects.append(debug_obj_name)
+        test_objects.append(test_obj_name)
     
     
     libs_str = ' -l'.join(LIBS.get(system(), []))
@@ -99,6 +110,8 @@ def main():
     # can't modify a constant or mypy will murder my family
     executable = EXECUTABLE
     if system() == 'Windows' and not executable.endswith('.exe'): executable = f'{executable}.exe'
+
+    run_item: Callable[[str, str], str] = lambda name, dep: makefile_item(name, [dep], [f'./{executable}'])
     
     makefile = '.PHONY: makefile\n\n' \
     + makefile_item(
@@ -110,13 +123,15 @@ def main():
         ['codegen'] + debug_objects,
         [f'{COMPILER} -g -rdynamic {" ".join(debug_objects)} -o {executable}{libs_str}']
     ) + makefile_item(
-        'run',
-        ['all'],
-        [f'./{executable}']
-    ) + makefile_item(
-        'run-debug',
-        ['debug'],
-        [f'./{executable}']
+        'test',
+        ['codegen'] + test_objects,
+        [f'{COMPILER} -g -rdynamic {" ".join(debug_objects)} -o {executable}{libs_str}']
+    ) + run_item(
+        'run', 'all'
+    ) + run_item(
+        'run-debug', 'debug'
+    ) + run_item(
+        'run-test', 'test'
     ) + makefile_item(
         'makefile',
         [],

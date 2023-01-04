@@ -1,4 +1,4 @@
-#ifdef OCRPI_DEBUG
+#ifdef OCRPI_TEST
 
 #include "testing.h"
 
