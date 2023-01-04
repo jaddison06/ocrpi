@@ -75,15 +75,15 @@ STATIC InterpreterObj* interpretExpr(Expression expr) {
                     ))
                         panic(Panic_Interpreter, "Can't call this object!");
 
-                    if (expr.call.arguments.len != calleeObj->func.params.len)
-                        panic(Panic_Interpreter, "Called function %s with %i args instead of %i", tokText(calleeObj->func.name), expr.call.arguments.len, calleeObj->func.params.len);
-
                     switch (calleeObj->tag) {
                         case ObjType_Func: {
                             Scope* outerScope = currentScope;
                             // no closures for you!!
                             currentScope = _globalScope;
                             pushScope();
+
+                            if (expr.call.arguments.len != calleeObj->func.params.len)
+                                panic(Panic_Interpreter, "Called function %s with %i args instead of %i", tokText(calleeObj->func.name), expr.call.arguments.len, calleeObj->func.params.len);
 
                             for (int i = 0; i < expr.call.arguments.len; i++) {
                                 InterpreterObj* arg = interpretExpr(expr.call.arguments.root[i]);
