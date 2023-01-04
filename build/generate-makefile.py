@@ -111,7 +111,7 @@ def main():
     executable = EXECUTABLE
     if system() == 'Windows' and not executable.endswith('.exe'): executable = f'{executable}.exe'
 
-    run_item: Callable[[str, str], str] = lambda name, dep: makefile_item(name, [dep], [f'./{executable}'])
+    run_item: Callable[[str, str], str] = lambda name, dep: makefile_item(name, [dep], [f'./{executable} $(source)'])
     
     makefile = '.PHONY: makefile\n\n' \
     + makefile_item(
