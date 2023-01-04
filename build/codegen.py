@@ -3,9 +3,9 @@ from io import StringIO
 from sys import exit, argv
 
 def codegen():
-    if len(argv) != 2: exit('Usage: codegen.py <output file basename>')
+    if len(argv) != 3: exit('Usage: codegen.py <config file> <output file basename>')
 
-    with open('generate.yaml', 'rt') as fh:
+    with open(argv[1], 'rt') as fh:
         genFile = yaml.safe_load(fh)
 
     header = StringIO()
@@ -28,13 +28,13 @@ def codegen():
     header.write('#endif // GENERATED_H')
 
 
-    with open(f'{argv[1]}.h', 'wt') as fh:
+    with open(f'{argv[2]}.h', 'wt') as fh:
         fh.write(header.getvalue())
 
 
     source = StringIO()
 
-    source.write(f'// GENERATED FILE - DO NOT EDIT\n\n#include "{argv[1]}.h"\n\n')
+    source.write(f'// GENERATED FILE - DO NOT EDIT\n\n#include "{argv[2]}.h"\n\n')
     for name, values in genFile['enums'].items():
         source.write(f'char* {name}ToString({name} theEnum) {{\n')
         source.write('    char* values[] = {')
@@ -46,7 +46,7 @@ def codegen():
         source.write('    return values[theEnum];\n}\n\n')
     
 
-    with open(f'{argv[1]}.c', 'wt') as fh:
+    with open(f'{argv[2]}.c', 'wt') as fh:
         fh.write(source.getvalue())
 
 if __name__ == '__main__': codegen()
