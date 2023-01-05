@@ -20,6 +20,7 @@ enums:
     - Fun
     - Proc
     - Class
+maskEnums:
   ObjType:
     - Ref
     - Class

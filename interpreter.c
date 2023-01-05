@@ -44,7 +44,7 @@ STATIC void popScope() {
 }
 
 InterpreterObj* interpretExpr(Expression expr);
-STATIC bool isTruthy(InterpreterObj obj);
+bool isTruthy(InterpreterObj obj);
 STATIC void interpretDecl(Declaration decl);
 STATIC void interpretBlock(DeclList block);
 
@@ -152,6 +152,21 @@ STATIC bool exprEqual(Expression* a, Expression* b) {
     return equal(interpretExpr(*a), interpretExpr(*b));
 }
 
+#define NUMERIC_OP(name, op) STATIC InterpreterObj name(Expression* a, Expression* b) { \
+    InterpreterObj* aRes = interpretExpr(*a); \
+    InterpreterObj* bRes = interpretExpr(*b); \
+    if (aRes->tag == ObjType_Float) { \
+        if (bRes->tag == ObjType_Float) return (InterpreterObj){.tag = ObjType_Float, .float_ = aRes->float_ op bRes->float_; \
+        else if (bRes->tag == ObjType_Int) return (InterpreterObj){.tag = ObjType_Float, .float_ = aRes->float_ op bRes->int_; \
+    } else if (aRes->tag == ObjType_Int) { \
+        if (bRes->tag == ObjType_Float) return (InterpreterObj){.tag = ObjType_Int, .int = aRes->int_ op bRes->float_; \
+        else if (bRes->tag == ObjType_Int) return (InterpreterObj){.tag = ObjType_Int, .int = aRes->int_ op bRes->int_; \
+    } \
+    panic(Panic_Interpreter, "Invalid operator between %s and %s", ObjTypeToString(aRes->tag), ObjTypeToString(bRes->tag)); \
+}
+
+
+
 STATIC bool less(Expression* a, Expression* b) {
     InterpreterObj* aRes = interpretExpr(*a);
     InterpreterObj* bRes = interpretExpr(*b);
@@ -216,6 +231,8 @@ InterpreterObj binaryExpr(TokType operator, Expression* a, Expression* b) {
         case Tok_LessEqual: return BOOLOBJ(lessEqual(a, b));
         case Tok_Greater: return BOOLOBJ(greater(a, b));
         case Tok_GreaterEqual: return BOOLOBJ(greaterEqual(a, b));
+
+
     }
 
 #undef BOOLOBJ
@@ -377,7 +394,7 @@ InterpreterObj* interpretExpr(Expression expr) {
     return out;
 }
 
-STATIC bool isTruthy(InterpreterObj obj) {
+bool isTruthy(InterpreterObj obj) {
     switch (obj.tag) {
         case ObjType_Ref: return isTruthy(*obj.reference);
 
@@ -554,6 +571,10 @@ typedef struct {
 
 STATIC STLFuncDef stl_funcs[] = {
     {"typeof", stl_typeof},
+    {"bool", stl_bool},
+    {"string", stl_string},
+    {"float", stl_float},
+    {"int", stl_int},
     {"", NULL}
 };
 
