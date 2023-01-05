@@ -22,9 +22,14 @@ int main(int argc, char** argv) {
     if (argc != 2) panic(Panic_Main, "Usage: ocrpi <source-file>");
     
     if (checkExtension(argv[1], ".ocr")) {
-        ParseOutput po = parse(lex(readFile(argv[1])));
-        if (po.errors.len > 0) exit(1);
-        interpret(po);
+        char* source = readFile(argv[1]);
+        LexOutput lo = lex(source);
+        // ParseOutput po = parse(lo);
+        // if (po.errors.len > 0) exit(1);
+        // interpret(po);
+        // destroyParseOutput(po);
+        destroyLexOutput(lo);
+        free(source);
     } else if (checkExtension(argv[1], ".ocrx")) {
         // lex, parse, check, compile
         panic(Panic_Main, "Extended mode not supported yet!");

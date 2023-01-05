@@ -182,7 +182,7 @@ typedef struct {
 } ParseOutput;
 
 ParseOutput parse(LexOutput lo);
-void DestroyParseOutput(ParseOutput po);
+void destroyParseOutput(ParseOutput po);
 
 // todo: let's hope i never have to debug this!!
 //

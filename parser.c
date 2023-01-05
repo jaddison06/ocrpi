@@ -668,7 +668,7 @@ ParseOutput parse(LexOutput lo) {
 }
 
 // yoooooooooooo
-void DestroyParseOutput(ParseOutput po) {
+void destroyParseOutput(ParseOutput po) {
     DESTROY(po.ast);
     DESTROY(po.errors);
 }
