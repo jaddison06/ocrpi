@@ -669,7 +669,7 @@ ParseOutput parse(LexOutput lo) {
 STATIC void destroyBlock(DeclList block);
 
 #define DECL_LIST_DESTROY(dl) do { \
-    destroyBlock(dl); \
+    destroyBlock(*(dl)); \
     DESTROY(*(dl)); \
     free(dl); \
 } while (0)
@@ -679,7 +679,7 @@ STATIC void destroyExpression(Expression expr) {
 }
 
 STATIC void destroyConditionalBlock(ConditionalBlock cb) {
-    destroyExpression(cb.expr);
+    destroyExpression(cb.condition);
     DECL_LIST_DESTROY(cb.block);
 }
 
@@ -700,8 +700,8 @@ STATIC void destroyStatement(Statement stmt) {
             break;
         }
         case StmtTag_If: {
-            destroyConditionalBlock(out.primary);
-            for (int i = 0; i < out.secondary.len; i++) {
+            destroyConditionalBlock(stmt.if_.primary);
+            for (int i = 0; i < stmt.if_.secondary.len; i++) {
                 
             }
             break;
@@ -713,7 +713,7 @@ STATIC void destroyStatement(Statement stmt) {
             }
             DESTROY(stmt.switch_.cases);
             if (stmt.switch_.hasDefault) {
-                destroyBlock(stmt.switch_.default_);
+                DECL_LIST_DESTROY(stmt.switch_.default_);
             }
             break;
         }

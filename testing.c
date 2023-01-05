@@ -62,6 +62,7 @@ static void _expectNStr(char* expression, char* expressionStr, int length, char*
     free(buf);
 }
 
+DECL_VEC(int, IntVec)
 DECL_MAP(int, IntMap)
 
 static void testMap() {
@@ -281,6 +282,17 @@ static void _testAll() {
         expect((_panicRet & _PANIC_CATCHABLE_CODE_MASK) >> 8 == PCC_Test);
         expect(_panicRet & _PANIC_CATCHABLE_FLAG);
     } PANIC_END_TRY
+
+    module = "vector";
+    IntVec ints;
+    INIT(ints);
+    APPEND(ints, 1);
+    APPEND(ints, 2);
+    APPEND(ints, 3);
+    int j = 1;
+    FOREACH(int*, i, ints) {
+        expect(*i == j++);
+    }
 }
 
 void testAll() {

@@ -33,6 +33,9 @@
     free((vec).elemTempStorage); \
 } while(0)
 
+#define FOREACH(type, iterator, vec) for (type iterator = vec.root; iterator - vec.root < vec.len; iterator++)
+
+
 // new and improved! can take an rvalue - no need to pass in temporary variables!!
 //
 // when passing struct literals w/ multiple members put BRACKETS around them - i know
