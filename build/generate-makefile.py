@@ -30,7 +30,7 @@ def all_with_extension(*exts: str) -> list[str]:
 COMPILER = 'gcc'
 DEBUG_DEFINES: dict[str, str] = {'OCRPI_DEBUG': '1'}
 TEST_DEFINES: dict[str, str] = {**DEBUG_DEFINES, 'OCRPI_TEST': '1'}
-LIBS: dict[str, list[str]] = {}
+LIBS: dict[str, list[str]] = {'Linux': ['m']}
 EXECUTABLE = 'ocrpi'
 SOURCE_EXTS = ['.c']
 HEADER_EXTS = ['.h']

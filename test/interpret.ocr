@@ -6,21 +6,6 @@ print(a)
 
 print(a == "Hello, Assignment!")
 
-function getPrint()
-    return print
-endfunction
-
-getPrint()("Hello, Trickery!")
-
-print(1 < 2)  // true
-print(1 <= 2) // true
-print(1 > 2)  // false
-print(1 >= 2) // false
-print(2 < 1)  // false
-print(2 <= 1) // false
-print(2 > 1)  // true
-print(2 >= 1) // true
-print(2 < 2)  // false
-print(2 <= 2) // true
-print(2 > 2)  // false
-print(2 >= 2) // true
+print(10 - 7)
+print(2 + 3)
+print("Hello" + ", " + "Concatenation!")

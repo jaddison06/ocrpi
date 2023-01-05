@@ -1,6 +1,7 @@
 #include "interpreter.h"
 
 #include <stdlib.h>
+#include <math.h>
 
 #include "common.h"
 #include "panic.h"
@@ -152,20 +153,63 @@ STATIC bool exprEqual(Expression* a, Expression* b) {
     return equal(interpretExpr(*a), interpretExpr(*b));
 }
 
-#define NUMERIC_OP(name, op) STATIC InterpreterObj name(Expression* a, Expression* b) { \
-    InterpreterObj* aRes = interpretExpr(*a); \
-    InterpreterObj* bRes = interpretExpr(*b); \
+#define NUMERIC_OP(name, op) STATIC InterpreterObj name##Objs(InterpreterObj* aRes, InterpreterObj* bRes) { \
     if (aRes->tag == ObjType_Float) { \
-        if (bRes->tag == ObjType_Float) return (InterpreterObj){.tag = ObjType_Float, .float_ = aRes->float_ op bRes->float_; \
-        else if (bRes->tag == ObjType_Int) return (InterpreterObj){.tag = ObjType_Float, .float_ = aRes->float_ op bRes->int_; \
+        float aNum = aRes->float_; \
+        if (bRes->tag == ObjType_Float) { \
+            float bNum = bRes->float_; \
+            return (InterpreterObj){.tag = ObjType_Float, .float_ = op}; \
+        } else if (bRes->tag == ObjType_Int) { \
+            int bNum = bRes->int_; \
+            return (InterpreterObj){.tag = ObjType_Float, .float_ = op}; \
+        } \
     } else if (aRes->tag == ObjType_Int) { \
-        if (bRes->tag == ObjType_Float) return (InterpreterObj){.tag = ObjType_Int, .int = aRes->int_ op bRes->float_; \
-        else if (bRes->tag == ObjType_Int) return (InterpreterObj){.tag = ObjType_Int, .int = aRes->int_ op bRes->int_; \
+        float aNum = aRes->int_; \
+        if (bRes->tag == ObjType_Float) { \
+            float bNum = bRes->float_; \
+            return (InterpreterObj){.tag = ObjType_Int, .int_ = op}; \
+        } else if (bRes->tag == ObjType_Int) { \
+            int bNum = bRes->int_; \
+            return (InterpreterObj){.tag = ObjType_Int, .int_ = op}; \
+        } \
     } \
     panic(Panic_Interpreter, "Invalid operator between %s and %s", ObjTypeToString(aRes->tag), ObjTypeToString(bRes->tag)); \
+} \
+STATIC InterpreterObj name(Expression* a, Expression* b) { return name##Objs(interpretExpr(*a), interpretExpr(*b)); }
+
+NUMERIC_OP(exponent, pow(aNum, bNum))
+NUMERIC_OP(multiply, aNum * bNum)
+NUMERIC_OP(divide, aNum / bNum)
+NUMERIC_OP(subtract, aNum - bNum)
+NUMERIC_OP(_addNum, aNum + bNum)
+
+STATIC InterpreterObj add(Expression* a, Expression* b) {
+    InterpreterObj* aRes = interpretExpr(*a);
+    InterpreterObj* bRes = interpretExpr(*b);
+    if (aRes->tag == ObjType_String && bRes->tag == ObjType_String) {
+        char* out = malloc(strlen(aRes->string) + strlen(bRes->string) + 1);
+        memcpy(out, aRes->string, strlen(aRes->string) + 1);
+        strcat(out, bRes->string);
+        return (InterpreterObj){
+            .tag = ObjType_String,
+            .string = out
+        };
+    } else if (aRes->tag == ObjType_Array && bRes->tag == ObjType_Array) {
+        ObjList out;
+        INIT(out);
+        for (int i = 0; i < aRes->array.len; i++) {
+            APPEND(out, aRes->array.root[i]);
+        }
+        for (int i = 0; i < bRes->array.len; i++) {
+            APPEND(out, bRes->array.root[i]);
+        }
+        return (InterpreterObj){
+            .tag = ObjType_Array,
+            .array = out
+        };
+    }
+    return _addNumObjs(aRes, bRes);
 }
-
-
 
 STATIC bool less(Expression* a, Expression* b) {
     InterpreterObj* aRes = interpretExpr(*a);
@@ -232,7 +276,11 @@ InterpreterObj binaryExpr(TokType operator, Expression* a, Expression* b) {
         case Tok_Greater: return BOOLOBJ(greater(a, b));
         case Tok_GreaterEqual: return BOOLOBJ(greaterEqual(a, b));
 
-
+        case Tok_Exp: return exponent(a, b);
+        case Tok_Star: return multiply(a, b);
+        case Tok_Slash: return divide(a, b);
+        case Tok_Plus: return add(a, b);
+        case Tok_Minus: return subtract(a, b);
     }
 
 #undef BOOLOBJ

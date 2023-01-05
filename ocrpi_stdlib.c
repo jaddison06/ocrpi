@@ -51,7 +51,10 @@ static char* objToString(InterpreterObj obj) {
             return obj.bool_ ? "true" : "false";
         }
         case ObjType_Int: {
-            return itoa(obj.int_);
+            // todo: enough?
+            char* buf = malloc(20);
+            sprintf(buf, "%i", obj.int_);
+            return buf;
         }
         case ObjType_String: {
             return obj.string;
@@ -66,7 +69,7 @@ static char* objToString(InterpreterObj obj) {
             int len = 1;
             int cap = 1;
             char* buf = malloc(1);
-            buf[0] = "[";
+            buf[0] = '[';
             for (int i = 0; i < obj.array.len; i++) {
                 char* thisObj = objToString(obj.array.root[i]);
                 int thisLen = strlen(thisObj);
