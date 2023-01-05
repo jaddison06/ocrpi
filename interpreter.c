@@ -177,7 +177,7 @@ STATIC bool exprEqual(Expression* a, Expression* b) {
 } \
 STATIC InterpreterObj name(Expression* a, Expression* b) { return name##Objs(interpretExpr(*a), interpretExpr(*b)); }
 
-NUMERIC_OP(exponent, pow(aNum, bNum))
+NUMERIC_OP(iExponent, pow(aNum, bNum))
 NUMERIC_OP(multiply, aNum * bNum)
 NUMERIC_OP(divide, aNum / bNum)
 NUMERIC_OP(subtract, aNum - bNum)
@@ -276,7 +276,7 @@ InterpreterObj binaryExpr(TokType operator, Expression* a, Expression* b) {
         case Tok_Greater: return BOOLOBJ(greater(a, b));
         case Tok_GreaterEqual: return BOOLOBJ(greaterEqual(a, b));
 
-        case Tok_Exp: return exponent(a, b);
+        case Tok_Exp: return iExponent(a, b);
         case Tok_Star: return multiply(a, b);
         case Tok_Slash: return divide(a, b);
         case Tok_Plus: return add(a, b);
