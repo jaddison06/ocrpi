@@ -298,9 +298,9 @@ LexOutput lex(char* source) {
     TokList toks;
     INIT(toks);
 
+    skipWhitespace();
+
     while (!isAtEnd()) {
-        skipWhitespace();
-        
         start = current;
 
         char c = advance();
@@ -308,6 +308,8 @@ LexOutput lex(char* source) {
         if (isAlpha(c)) APPEND(toks, identifier());
         else if (isDigit(c)) APPEND(toks, number());
         else APPEND(toks, symbol(c));
+        
+        skipWhitespace();
     }
 
     APPEND(toks, ((Token){
