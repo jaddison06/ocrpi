@@ -668,8 +668,66 @@ ParseOutput parse(LexOutput lo) {
 
 STATIC void destroyBlock(DeclList block);
 
-STATIC void destroyStatement(Statement stmt) {
+#define DECL_LIST_DESTROY(dl) do { \
+    destroyBlock(dl); \
+    DESTROY(*(dl)); \
+    free(dl); \
+} while (0)
 
+STATIC void destroyExpression(Expression expr) {
+
+}
+
+STATIC void destroyConditionalBlock(ConditionalBlock cb) {
+    destroyExpression(cb.expr);
+    DECL_LIST_DESTROY(cb.block);
+}
+
+STATIC void destroyStatement(Statement stmt) {
+    switch (stmt.tag) {
+        case StmtTag_Global: {
+            break;
+        }
+        case StmtTag_For: {
+            break;
+        }
+        case StmtTag_While: {
+            destroyConditionalBlock(stmt.while_);
+            break;
+        }
+        case StmtTag_Do: {
+            destroyConditionalBlock(stmt.do_);
+            break;
+        }
+        case StmtTag_If: {
+            destroyConditionalBlock(out.primary);
+            for (int i = 0; i < out.secondary.len; i++) {
+                
+            }
+            break;
+        }
+        case StmtTag_Switch: {
+            destroyExpression(stmt.switch_.expr);
+            for (int i = 0; i < stmt.switch_.cases.len; i++) {
+                destroyConditionalBlock(stmt.switch_.cases.root[i]);
+            }
+            DESTROY(stmt.switch_.cases);
+            if (stmt.switch_.hasDefault) {
+                destroyBlock(stmt.switch_.default_);
+            }
+            break;
+        }
+        case StmtTag_Array: {
+            for (int i = 0; i < stmt.array.dimensions.len; i++) {
+                destroyExpression(stmt.array.dimensions.root[i]);
+            }
+            DESTROY(stmt.array.dimensions);
+            break;
+        }
+        case StmtTag_Expr: {
+            break;
+        }
+    }
 }
 
 STATIC void destroyDeclaration(Declaration decl) {
@@ -687,7 +745,7 @@ STATIC void destroyDeclaration(Declaration decl) {
                         free(currentDOR.declaration);
                     }
                     case DOR_return: {
-                        // free expression
+                        destroyExpression(currentDOR.return_);
                     }
                 }
             }
@@ -696,9 +754,7 @@ STATIC void destroyDeclaration(Declaration decl) {
         }
         case DeclTag_Proc: {
             DESTROY(decl.proc.params);
-            destroyBlock(*decl.proc.block);
-            DESTROY(*decl.proc.block);
-            free(decl.proc.block);
+            DECL_LIST_DESTROY(decl.proc.block);
             break;
         }
         case DeclTag_Stmt: {
