@@ -701,15 +701,15 @@ STATIC void destroyStatement(Statement stmt) {
         }
         case StmtTag_If: {
             destroyConditionalBlock(stmt.if_.primary);
-            for (int i = 0; i < stmt.if_.secondary.len; i++) {
-                
+            FOREACH(ConditionalBlock*, currentBranch, stmt.if_.secondary) {
+
             }
             break;
         }
         case StmtTag_Switch: {
             destroyExpression(stmt.switch_.expr);
-            for (int i = 0; i < stmt.switch_.cases.len; i++) {
-                destroyConditionalBlock(stmt.switch_.cases.root[i]);
+            FOREACH(ConditionalBlock*, currentCase, stmt.switch_.cases) {
+                destroyConditionalBlock(*currentCase);
             }
             DESTROY(stmt.switch_.cases);
             if (stmt.switch_.hasDefault) {
@@ -718,8 +718,8 @@ STATIC void destroyStatement(Statement stmt) {
             break;
         }
         case StmtTag_Array: {
-            for (int i = 0; i < stmt.array.dimensions.len; i++) {
-                destroyExpression(stmt.array.dimensions.root[i]);
+            FOREACH(Expression*, currentDimension, stmt.array.dimensions) {
+                destroyExpression(*currentDimension);
             }
             DESTROY(stmt.array.dimensions);
             break;
@@ -737,15 +737,14 @@ STATIC void destroyDeclaration(Declaration decl) {
         }
         case DeclTag_Fun: {
             DESTROY(decl.fun.params);
-            for (int i = 0; i < decl.fun.block.len; i++) {
-                DeclOrReturn currentDOR = decl.fun.block.root[i];
-                switch (currentDOR.tag) {
+            FOREACH(DeclOrReturn*, currentDOR, decl.fun.block) {
+                switch (currentDOR->tag) {
                     case DOR_decl: {
-                        destroyDeclaration(*currentDOR.declaration);
-                        free(currentDOR.declaration);
+                        destroyDeclaration(*currentDOR->declaration);
+                        free(currentDOR->declaration);
                     }
                     case DOR_return: {
-                        destroyExpression(currentDOR.return_);
+                        destroyExpression(currentDOR->return_);
                     }
                 }
             }
@@ -765,8 +764,8 @@ STATIC void destroyDeclaration(Declaration decl) {
 }
 
 STATIC void destroyBlock(DeclList block) {
-    for (int i = 0; i < block.len; i++) {
-        destroyDeclaration(block.root[i]);
+    FOREACH (Declaration*, currentDecl, block) {
+        destroyDeclaration(*currentDecl);
     }
 }
 

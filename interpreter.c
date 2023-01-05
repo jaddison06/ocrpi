@@ -71,8 +71,8 @@ STATIC INLINE void setVar(char* name, InterpreterObj value) {
 STATIC ObjList parseArgs(CallExpr call) {
     ObjList out;
     INIT(out);
-    for (int i = 0; i < call.arguments.len; i++) {
-        APPEND(out, *interpretExpr(call.arguments.root[i]));
+    FOREACH(Expression*, current, call.arguments) {
+        APPEND(out, *interpretExpr(*current));
     }
     return out;
 }
@@ -197,11 +197,11 @@ STATIC InterpreterObj add(Expression* a, Expression* b) {
     } else if (aRes->tag == ObjType_Array && bRes->tag == ObjType_Array) {
         ObjList out;
         INIT(out);
-        for (int i = 0; i < aRes->array.len; i++) {
-            APPEND(out, aRes->array.root[i]);
+        FOREACH(InterpreterObj*, obj, aRes->array) {
+            APPEND(out, *obj);
         }
-        for (int i = 0; i < bRes->array.len; i++) {
-            APPEND(out, bRes->array.root[i]);
+        FOREACH(InterpreterObj*, obj, bRes->array) {
+            APPEND(out, *obj);
         }
         return (InterpreterObj){
             .tag = ObjType_Array,
@@ -342,17 +342,16 @@ InterpreterObj* interpretExpr(Expression expr) {
                             Scope* outerScope = currentScope;
                             currentScope = executionScope;
 
-                            for (int i = 0; i < calleeObj->func.block.len; i++) {
-                                DeclOrReturn currentDOR = calleeObj->func.block.root[i];
-                                if (currentDOR.tag == DOR_return) {
-                                    out = interpretExpr(currentDOR.return_);
+                            FOREACH(DeclOrReturn*, currentDOR, calleeObj->func.block) {
+                                if (currentDOR->tag == DOR_return) {
+                                    out = interpretExpr(currentDOR->return_);
                                     destroyScope(executionScope);
                                     currentScope = outerScope;
                                     // boo!
                                     // (double break)
                                     goto returned;
                                 }
-                                interpretDecl(*currentDOR.declaration);
+                                interpretDecl(*currentDOR->declaration);
                             }
 
                             // we've interpreted everything in the func - why haven't we returned!!
@@ -541,9 +540,9 @@ STATIC void interpretStmt(Statement stmt) {
             if (isExprTruthy(stmt.if_.primary.condition)) {
                 interpretBlock(*stmt.if_.primary.block);
             } else {
-                for (int i = 0; i < stmt.if_.secondary.len; i++) {
-                    if (isExprTruthy(stmt.if_.secondary.root[i].condition)) {
-                        interpretBlock(*stmt.if_.secondary.root[i].block);
+                FOREACH(ConditionalBlock*, currentBranch, stmt.if_.secondary) {
+                    if (isExprTruthy(currentBranch->condition)) {
+                        interpretBlock(*currentBranch->block);
                         break;
                     }
                 }
