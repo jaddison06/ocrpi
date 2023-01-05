@@ -77,6 +77,8 @@ STATIC Expression primary() {
     if (!(
         match(Tok_Self) ||
         match(Tok_Nil) ||
+        match(Tok_True) ||
+        match(Tok_False) ||
         match(Tok_StringLit) ||
         match(Tok_IntLit) ||
         match(Tok_FloatLit) ||

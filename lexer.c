@@ -155,6 +155,7 @@ static Token identifier() {
         case 'f':
             if (current - start > 1) {
                 switch (start[1]) {
+                    case 'a': return makeTok(checkKeyword(2, "lse", Tok_False));
                     case 'o': return makeTok(checkKeyword(2, "r", Tok_For));
                     case 'u': return makeTok(checkKeyword(2, "nction", Tok_Function));
                 }
@@ -199,7 +200,12 @@ static Token identifier() {
             break;
         case 't':
             if (current - start == 2 && start[1] == 'o') return makeTok(Tok_To);
-            if (current - start > 1) return makeTok(checkKeyword(1, "hen", Tok_Then));
+            if (current - start > 1) {
+                switch (start[1]) {
+                    case 'r': return makeTok(checkKeyword(2, "ue", Tok_True));
+                    case 'h': return makeTok(checkKeyword(2, "en", Tok_Then));
+                }
+            }
             break;
         case 'u': return makeTok(checkKeyword(1, "ntil", Tok_Until));
         case 'w': return makeTok(checkKeyword(1, "hile", Tok_While));

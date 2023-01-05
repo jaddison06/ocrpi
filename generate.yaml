@@ -28,6 +28,7 @@ enums:
     - NativeFunc
     - NativeProc
     - Nil
+    - Bool
     - Int
     - String
     - Float

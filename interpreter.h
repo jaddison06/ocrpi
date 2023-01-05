@@ -27,6 +27,7 @@ struct InterpreterObj {
     ObjType tag;
     union {
         char* string;
+        bool bool_;
         int int_;
         float float_;
         FunDecl func;

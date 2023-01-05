@@ -18,7 +18,7 @@ typedef enum {
     Tok_Array,
 
     // Literals + identifiers
-    Tok_StringLit, Tok_IntLit, Tok_FloatLit, Tok_Nil, Tok_Identifier,
+    Tok_True, Tok_False, Tok_StringLit, Tok_IntLit, Tok_FloatLit, Tok_Nil, Tok_Identifier,
 
     // EOF
     Tok_EOF

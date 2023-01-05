@@ -262,6 +262,12 @@ InterpreterObj* interpretExpr(Expression expr) {
                     out->tag = ObjType_Nil;
                     break;
                 }
+                case Tok_True:
+                case Tok_False: {
+                    out->tag = ObjType_Bool;
+                    out->bool_ = expr.primary.type == Tok_True;
+                    break;
+                }
                 case Tok_StringLit: {
                     // strip leading & trailing quotes!
                     char* stringContents = malloc(strlen(text) - 1);

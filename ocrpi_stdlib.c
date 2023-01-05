@@ -45,6 +45,10 @@ static void printObj(InterpreterObj obj) {
             printf("nil");
             break;
         }
+        case ObjType_Bool: {
+            printf(obj.bool_ ? "true" : "false");
+            break;
+        }
         case ObjType_Int: {
             printf("%i", obj.int_);
             break;
