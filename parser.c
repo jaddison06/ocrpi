@@ -702,7 +702,7 @@ STATIC void destroyDeclaration(Declaration decl) {
             break;
         }
         case DeclTag_Stmt: {
-            destroyStatement(Statement stmt);
+            destroyStatement(decl.stmt);
             break;
         }
     }
