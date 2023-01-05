@@ -5,3 +5,9 @@ a = "Hello, Assignment!"
 print(a)
 
 print(a == "Hello, Assignment!")
+
+function getPrint()
+    return print
+endfunction
+
+getPrint()("Hello, Trickery!")

@@ -152,6 +152,31 @@ STATIC bool exprEqual(Expression* a, Expression* b) {
     return equal(interpretExpr(*a), interpretExpr(*b));
 }
 
+STATIC bool less(Expression* a, Expression* b) {
+    InterpreterObj* aRes = interpretExpr(*a);
+    InterpreterObj* bRes = interpretExpr(*b);
+    if (aRes->tag == ObjType_Float) {
+        if (bRes->tag == ObjType_Float) return aRes->float_ < bRes->float_;
+        else if (bRes->tag == ObjType_Int) return aRes->float_ < bRes->int_;
+    } else if (aRes->tag == ObjType_Int) {
+        if (bRes->tag == ObjType_Float) return aRes->int_ < bRes->float_;
+        else if (bRes->tag == ObjType_Int) return aRes->int_ < bRes->int_;
+    }
+    panic(Panic_Interpreter, "Invalid operator between %s and %s", ObjTypeToString(aRes->tag), ObjTypeToString(bRes->tag));
+}
+
+STATIC INLINE bool greaterEqual(Expression* a, Expression* b) {
+    return !less(a, b);
+}
+
+STATIC INLINE bool lessEqual(Expression* a, Expression* b) {
+    return less(a, b) || exprEqual(a, b);
+}
+
+STATIC INLINE bool greater(Expression* a, Expression* b) {
+    return !lessEqual(a, b);
+}
+
 InterpreterObj binaryExpr(TokType operator, Expression* a, Expression* b) {
 #define BOOLOBJ(val) (InterpreterObj){.tag = ObjType_Bool, .bool_ = val}
 
@@ -186,6 +211,11 @@ InterpreterObj binaryExpr(TokType operator, Expression* a, Expression* b) {
 
         case Tok_EqualEqual: return BOOLOBJ(exprEqual(a, b));
         case Tok_BangEqual: return BOOLOBJ(!exprEqual(a, b));
+
+        case Tok_Less: return BOOLOBJ(less(a, b));
+        case Tok_LessEqual: return BOOLOBJ(lessEqual(a, b));
+        case Tok_Greater: return BOOLOBJ(greater(a, b));
+        case Tok_GreaterEqual: return BOOLOBJ(greaterEqual(a, b));
     }
 
 #undef BOOLOBJ
