@@ -33,9 +33,9 @@ extern jmp_buf _panicJump;
 
 #define PANIC_TRY { _catchPanic(); uint16_t _panicRet = setjmp(_panicJump); bool caught = false; if (!_panicRet) {
 
-#define PANIC_CATCH(code) } else if ((_panicRet & _PANIC_CATCHABLE_CODE_MASK) == (code << 8)) { caught = true;
+#define PANIC_CATCH(code) } else if ((_panicRet & _PANIC_CATCHABLE_CODE_MASK) == (code << 8)) { _releasePanic(); caught = true;
 
-#define PANIC_END_TRY } if (!caught) { _panicFailure(_panicRet); } _releasePanic(); }
+#define PANIC_END_TRY } if (!caught) _panicFailure(_panicRet); }
 
 void _catchPanic();
 void _releasePanic();

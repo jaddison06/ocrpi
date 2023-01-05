@@ -104,7 +104,8 @@ STATIC INLINE void assign(char* name, Expression* a, InterpreterObj b) {
         InterpreterObj* target = interpretExpr(*a);
         *target = b;
     } PANIC_CATCH(PCC_InterpreterUnknownVar) {
-        
+        // the object doesn't exist - create it!
+        if (a->tag != ExprTag_Primary) panic(Panic_Interpreter, "");
     }
     PANIC_END_TRY;
 }
