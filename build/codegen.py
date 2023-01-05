@@ -27,14 +27,6 @@ def codegen():
         
         header.write(f'char* {name}ToString({name} theEnum);\n\n')
     
-    for name, values in genFile['maskEnums'].items():
-        header.write('typedef enum {\n')
-        for i, value in enumerate(values):
-            header.write(f'    {name}_{value} = {2 ** i},\n')
-        header.write(f'}} {name};\n\n')
-        
-        header.write(f'char* {name}ToString({name} theEnum);\n\n')
-    
     header.write('#endif // GENERATED_H')
 
 
@@ -54,23 +46,6 @@ def codegen():
                 source.write(', ')
         source.write('};\n')
         source.write('    return values[theEnum];\n}\n\n')
-    
-    for name, values in genFile['maskEnums'].items():
-        source.write(f'char* {name}ToString({name} theEnum) {{\n')
-        source.write('    char* values[] = {')
-        for i, value in enumerate(values):
-            source.write(f'"{value}"')
-            if i != len(values) - 1:
-                source.write(', ')
-        source.write('};')
-        source.write('''
-    int i = 0;
-    while (theEnum >> i > 1) i++;
-    return values[i];
-}
-
-''')
-    
 
     with open(f'{argv[2]}.c', 'wt') as fh:
         fh.write(source.getvalue())
