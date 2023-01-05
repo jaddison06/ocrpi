@@ -358,7 +358,6 @@ STATIC void block(DeclList* block, TokType end) {
 
 STATIC FunDecl function() {
     FunDecl out;
-    // todo: cleanup
     INIT(out.params);
     INIT(out.block);
     consume(Tok_Function, "Expected 'function'");
@@ -667,8 +666,57 @@ ParseOutput parse(LexOutput lo) {
     return out;
 }
 
+STATIC void destroyBlock(DeclList block);
+
+STATIC void destroyStatement(Statement stmt) {
+
+}
+
+STATIC void destroyDeclaration(Declaration decl) {
+    switch (decl.tag) {
+        case DeclTag_Class: {
+            break;
+        }
+        case DeclTag_Fun: {
+            DESTROY(decl.fun.params);
+            for (int i = 0; i < decl.fun.block.len; i++) {
+                DeclOrReturn currentDOR = decl.fun.block.root[i];
+                switch (currentDOR.tag) {
+                    case DOR_decl: {
+                        destroyDeclaration(*currentDOR.declaration);
+                        free(currentDOR.declaration);
+                    }
+                    case DOR_return: {
+                        // free expression
+                    }
+                }
+            }
+            DESTROY(decl.fun.block);
+            break;
+        }
+        case DeclTag_Proc: {
+            DESTROY(decl.proc.params);
+            destroyBlock(*decl.proc.block);
+            DESTROY(*decl.proc.block);
+            free(decl.proc.block);
+            break;
+        }
+        case DeclTag_Stmt: {
+            destroyStatement(Statement stmt);
+            break;
+        }
+    }
+}
+
+STATIC void destroyBlock(DeclList block) {
+    for (int i = 0; i < block.len; i++) {
+        destroyDeclaration(block.root[i]);
+    }
+}
+
 // yoooooooooooo
 void destroyParseOutput(ParseOutput po) {
+    destroyBlock(po.ast);
     DESTROY(po.ast);
     DESTROY(po.errors);
 }

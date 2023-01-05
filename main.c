@@ -24,10 +24,10 @@ int main(int argc, char** argv) {
     if (checkExtension(argv[1], ".ocr")) {
         char* source = readFile(argv[1]);
         LexOutput lo = lex(source);
-        // ParseOutput po = parse(lo);
+        ParseOutput po = parse(lo);
         // if (po.errors.len > 0) exit(1);
         // interpret(po);
-        // destroyParseOutput(po);
+        destroyParseOutput(po);
         destroyLexOutput(lo);
         free(source);
     } else if (checkExtension(argv[1], ".ocrx")) {
