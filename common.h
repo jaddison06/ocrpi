@@ -12,3 +12,5 @@
 #define INLINE inline
 
 #endif
+
+#define OCRPI_PRINT_PANIC_CODES 0

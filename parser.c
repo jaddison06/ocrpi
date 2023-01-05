@@ -19,6 +19,8 @@ STATIC void printError(char* msg) {
 }
 
 // Recoverable error - synchronise & continue
+//
+// todo: refactor w/ panic() catching
 STATIC void error(char* msg) {
     printError(msg);
     currentError = (ParseError){

@@ -79,7 +79,7 @@ STATIC ObjList parseArgs(CallExpr call) {
 //   - call().member = value
 //   - identifier = value
 //   - (lvalue = assignedValue) = anotherAssignedValue <-- normally useless but kinda nice if you want to take a reference to the lvalue of an assignment!!
-STATIC bool isLvalue(Expression expr) {
+STATIC bool isLValue(Expression expr) {
     if (
         (expr.tag == ExprTag_Call && expr.call.tag == Call_GetMember) ||
         (expr.tag == ExprTag_Primary && expr.primary.type == Tok_Identifier) ||
@@ -96,8 +96,8 @@ STATIC bool isLvalue(Expression expr) {
     return false;
 }
 
-STATIC INLINE void assign(char* name, Expression* a, InterpreterObj b) {
-    if (!isLvalue(*a)) panic(Panic_Interpreter, "Can't assign - not an lvalue! (%s)", ExprTagToString(a->tag));
+STATIC INLINE void assign(Expression* a, InterpreterObj b) {
+    if (!isLValue(*a)) panic(Panic_Interpreter, "Can't assign - not an lvalue! (%s)", ExprTagToString(a->tag));
     // assignment or initialization!!
     PANIC_TRY {
         // try and find the object and assign to it
@@ -105,18 +105,42 @@ STATIC INLINE void assign(char* name, Expression* a, InterpreterObj b) {
         *target = b;
     } PANIC_CATCH(PCC_InterpreterUnknownVar) {
         // the object doesn't exist - create it!
-        if (a->tag != ExprTag_Primary) panic(Panic_Interpreter, "");
-    }
-    PANIC_END_TRY;
+
+        // we can't create a new class member dynamically (because i said so), and if we're assigning to an assignment then
+        // why the fuck wouldn't it already exist?
+        if (a->tag != ExprTag_Primary) {
+            panic(Panic_Interpreter, "This type of value can only be assigned to!");
+        }
+
+        setVar(tokText(a->primary), b);
+    } PANIC_END_TRY
 }
 
 InterpreterObj binaryExpr(TokType operator, Expression* a, Expression* b) {
     switch (operator) {
         case Tok_Equal: {
-            
+            assign(a, *interpretExpr(*b));
+            break;
         }
         case Tok_ExpEqual: {
-            // binaryExpr(Tok_Equal, a, binaryExpr(Tok_Exp, a, b));
+            assign(a, binaryExpr(Tok_Exp, a, b));
+            break;
+        }
+        case Tok_StarEqual: {
+            assign(a, binaryExpr(Tok_Star, a, b));
+            break;
+        }
+        case Tok_SlashEqual: {
+            assign(a, binaryExpr(Tok_Slash, a, b));
+            break;
+        }
+        case Tok_PlusEqual: {
+            assign(a, binaryExpr(Tok_Plus, a, b));
+            break;
+        }
+        case Tok_MinusEqual: {
+            assign(a, binaryExpr(Tok_Minus, a, b));
+            break;
         }
     }
 }
@@ -162,8 +186,7 @@ InterpreterObj* interpretExpr(Expression expr) {
                             for (int i = 0; i < expr.call.arguments.len; i++) {
                                 InterpreterObj* arg = interpretExpr(expr.call.arguments.root[i]);
                                 if (calleeObj->func.params.root[i].passMode == Param_byRef) {
-                                    // todo: error if not an lvalue (what is an lvalue!!!!!!)
-                                    // allow assignment as an lvalue?? (`a = 3` returns a instead of 3)
+                                    if (!isLValue(expr.call.arguments.root[i])) panic(Panic_Interpreter, "Can't pass a %s by reference!", ExprTagToString(expr.call.arguments.root[i].tag));
                                     ObjNSSet(&executionScope->objects, tokText(calleeObj->func.params.root[i].name), (InterpreterObj){
                                         .tag = ObjType_Ref,
                                         .reference = arg
@@ -260,7 +283,7 @@ InterpreterObj* interpretExpr(Expression expr) {
                 }
                 case Tok_Identifier: {
                     InterpreterObj* obj = findObj(text);
-                    if (obj == NULL) panic(PANIC_CATCHABLE(Panic_Interpreter, PCC_InterpreterUnknownVar), "Unknown variable %s!\n", text);
+                    if (obj == NULL) panic(PANIC_CATCHABLE(Panic_Interpreter, PCC_InterpreterUnknownVar), "Unknown variable %s!", text);
                     out = obj;
                     break;
                 }

@@ -1,12 +1,5 @@
 print("Hello, World!")
 
-function getHello()
-    return "Hello, Globals"
-endfunction
+a = "Hello, Assignment!"
 
-function printHello()
-    print(getHello())
-endfunction
-
-print(typeof(print("eeeee")))
-printHello()
+print(a)
