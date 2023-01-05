@@ -233,6 +233,46 @@ static void _testAll() {
     expect(result->tag == ObjType_String);
     expectStr(result->string, "balls");
 
+    Expression a = ((Expression){
+        .tag = ExprTag_Primary,
+        .primary = (Token){
+            .col = 0,
+            .length = 1,
+            .line = 0,
+            .start = "3",
+            .type = Tok_IntLit
+        }
+    });
+
+    Expression b = ((Expression){
+        .tag = ExprTag_Primary,
+        .primary = (Token){
+            .col = 0,
+            .length = 1,
+            .line = 0,
+            .start = "5",
+            .type = Tok_IntLit
+        }
+    });
+
+    result = interpretExpr((Expression){
+        .tag = ExprTag_Binary,
+        .binary = (BinaryExpr){
+            .operator = (Token){
+                .col = 0,
+                .length = 1,
+                .line = 0,
+                .start = "+",
+                .type = Tok_Plus
+            },
+            .a = &a,
+            .b = &b
+        }
+    });
+
+    expect(result->tag == ObjType_Int);
+    expect(result->int_ == 8);
+
     module = "panic";
     PANIC_TRY {
         panickingFunc();
