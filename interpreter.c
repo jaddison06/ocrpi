@@ -44,6 +44,7 @@ STATIC void popScope() {
 }
 
 InterpreterObj* interpretExpr(Expression expr);
+STATIC bool isTruthy(InterpreterObj obj);
 STATIC void interpretDecl(Declaration decl);
 STATIC void interpretBlock(DeclList block);
 
@@ -96,6 +97,10 @@ STATIC bool isLValue(Expression expr) {
     return false;
 }
 
+STATIC bool isExprTruthy(Expression expr) {
+    return isTruthy(*interpretExpr(expr));
+}
+
 STATIC INLINE void assign(Expression* a, InterpreterObj b) {
     if (!isLValue(*a)) panic(Panic_Interpreter, "Can't assign - not an lvalue! (%s)", ExprTagToString(a->tag));
     // assignment or initialization!!
@@ -116,7 +121,40 @@ STATIC INLINE void assign(Expression* a, InterpreterObj b) {
     } PANIC_END_TRY
 }
 
+STATIC bool equal(InterpreterObj* a, InterpreterObj* b) {
+    if (a->tag != b->tag) return false;
+    switch (a->tag) {
+        case ObjType_Ref: return equal(a->reference, b->reference);
+
+        case ObjType_Class:
+        case ObjType_Func:
+        case ObjType_Proc:
+        case ObjType_NativeFunc:
+        case ObjType_NativeProc: return a == b;
+
+        case ObjType_Nil: return true;
+        case ObjType_Bool: return a->bool_ == b->bool_;
+        case ObjType_Int: return a->int_ == b->int_;
+        case ObjType_String: return strcmp(a->string, b->string) == 0;
+        case ObjType_Float: return a->float_ == b->float_;
+        case ObjType_Array: {
+            if (a->array.len != b->array.len) return false;
+            for (int i = 0; i < a->array.len; i++) {
+                if (!equal(&a->array.root[i], &b->array.root[i])) return false;
+            }
+            return true;
+        }
+        case ObjType_Instance: panic(Panic_Interpreter, "Can't check instances for equality yet!");
+    }
+}
+
+STATIC bool exprEqual(Expression* a, Expression* b) {
+    return equal(interpretExpr(*a), interpretExpr(*b));
+}
+
 InterpreterObj binaryExpr(TokType operator, Expression* a, Expression* b) {
+#define BOOLOBJ(val) (InterpreterObj){.tag = ObjType_Bool, .bool_ = val}
+
     switch (operator) {
         case Tok_Equal: {
             assign(a, *interpretExpr(*b));
@@ -142,7 +180,15 @@ InterpreterObj binaryExpr(TokType operator, Expression* a, Expression* b) {
             assign(a, binaryExpr(Tok_Minus, a, b));
             break;
         }
+
+        case Tok_Or: return BOOLOBJ(isExprTruthy(*a) || isExprTruthy(*b));
+        case Tok_And: return BOOLOBJ(isExprTruthy(*a) && isExprTruthy(*b));
+
+        case Tok_EqualEqual: return BOOLOBJ(exprEqual(a, b));
+        case Tok_BangEqual: return BOOLOBJ(!exprEqual(a, b));
     }
+
+#undef BOOLOBJ
 }
 
 // todo: where do we alloc out? where do we free it?
@@ -301,9 +347,24 @@ InterpreterObj* interpretExpr(Expression expr) {
     return out;
 }
 
-STATIC bool isTruthy(Expression expr) {
-    InterpreterObj* result = interpretExpr(expr);
+STATIC bool isTruthy(InterpreterObj obj) {
+    switch (obj.tag) {
+        case ObjType_Ref: return isTruthy(*obj.reference);
 
+        case ObjType_Class:
+        case ObjType_Func:
+        case ObjType_Proc:
+        case ObjType_NativeFunc:
+        case ObjType_NativeProc:
+        case ObjType_Instance: panic(Panic_Interpreter, "Can't (yet) use a %s as a boolean!", ObjTypeToString(obj.tag));
+
+        case ObjType_Nil: return false;
+        case ObjType_Bool: return obj.bool_;
+        case ObjType_Int: return obj.int_ > 0;
+        case ObjType_String: return obj.string[0] != 0;
+        case ObjType_Float: return obj.float_ > 0;
+        case ObjType_Array: return obj.array.len > 0;
+    }
 }
 
 STATIC void interpretStmt(Statement stmt) {
@@ -360,7 +421,7 @@ STATIC void interpretStmt(Statement stmt) {
                     }
                 }
             };
-            while (isTruthy(cond)) {
+            while (isExprTruthy(cond)) {
                 interpretBlock(*stmt.for_.block);
                 interpretExpr(incr);
             }
@@ -369,29 +430,29 @@ STATIC void interpretStmt(Statement stmt) {
             break;
         }
         case StmtTag_While: {
-            while (isTruthy(stmt.while_.condition)) {
+            while (isExprTruthy(stmt.while_.condition)) {
                 interpretBlock(*stmt.while_.block);
             }
             break;
         }
         case StmtTag_Do: {
             //* yikes!! not a do-while but a do-until!
-            while (!isTruthy(stmt.do_.condition)) {
+            while (!isExprTruthy(stmt.do_.condition)) {
                 interpretBlock(*stmt.do_.block);
             }
             break;
         }
         case StmtTag_If: {
-            if (isTruthy(stmt.if_.primary.condition)) {
+            if (isExprTruthy(stmt.if_.primary.condition)) {
                 interpretBlock(*stmt.if_.primary.block);
             } else {
                 for (int i = 0; i < stmt.if_.secondary.len; i++) {
-                    if (isTruthy(stmt.if_.secondary.root[i].condition)) {
+                    if (isExprTruthy(stmt.if_.secondary.root[i].condition)) {
                         interpretBlock(*stmt.if_.secondary.root[i].block);
                         break;
                     }
                 }
-                if (stmt.if_.hasElse && isTruthy(stmt.if_.else_.condition)) {
+                if (stmt.if_.hasElse && isExprTruthy(stmt.if_.else_.condition)) {
                     interpretBlock(*stmt.if_.else_.block);
                 }
             }
