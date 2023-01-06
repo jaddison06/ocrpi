@@ -704,7 +704,6 @@ STATIC void destroyExpression(Expression expr) {
                 expr.call.tag == Call_Array
             ) {
                 destroyExprList(expr.call.arguments);
-                break;
             }
             DESTROY_FREE(expr.call.callee);
             break;
@@ -776,6 +775,7 @@ STATIC void destroyStatement(Statement stmt) {
             break;
         }
         case StmtTag_Expr: {
+            destroyExpression(stmt.expr);
             break;
         }
     }
