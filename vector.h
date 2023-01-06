@@ -39,6 +39,8 @@ typedef type _VecEntryName(name);
 
 #define FOREACH(name, vec, iterator) for (_VecEntryName(name)* iterator = (vec).root; iterator - (vec).root < (vec).len; iterator++)
 
+#define APPEND_ALL(name, to, from) FOREACH(name, from, current) APPEND(to, *current);
+
 
 // new and improved! can take an rvalue - no need to pass in temporary variables!!
 //

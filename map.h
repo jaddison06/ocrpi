@@ -24,14 +24,15 @@
     return NULL; \
 }
 
-#define _Set(type, name) static inline void name##Set(name* map, char* key, type value) { \
+#define _Set(type, name) static inline type* name##Set(name* map, char* key, type value) { \
     FOREACH(name, *map, entry) { \
         if (strcmp(entry->key, key) == 0) { \
             entry->value = value; \
-            return; \
+            return &entry->value; \
         } \
     } \
     APPEND(*map, ((_MapEntryName(name)) {.key = key, .value = value})); \
+    return &map->root[map->len - 1].value; \
 }
 
 #define _Remove(name) static inline void name##Remove(name* map, char* key) { \
