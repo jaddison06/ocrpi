@@ -119,7 +119,10 @@ STATIC bool equal(InterpreterObj a, InterpreterObj b) {
         case ObjType_Nil: return true;
         case ObjType_Bool: return a.bool_ == b.bool_;
         case ObjType_Int: return a.int_ == b.int_;
-        case ObjType_String: return strcmp(a.string, b.string) == 0;
+        case ObjType_String: {
+            if (a.string.length != b.string.length) return false;
+            return strncmp(a.string.start, b.string.start, a.string.length) == 0;
+        }
         case ObjType_Float: return a.float_ == b.float_;
         case ObjType_Array: {
             if (a.array.len != b.array.len) return false;
@@ -174,12 +177,16 @@ STATIC InterpreterObj add(InterpreterObj a, InterpreterObj b) {
     MAKE_ABS(b);
 
     if (a.tag == ObjType_String && b.tag == ObjType_String) {
-        char* out = malloc(strlen(a.string) + strlen(b.string) + 1);
-        memcpy(out, a.string, strlen(a.string) + 1);
-        strcat(out, b.string);
+        char* out = malloc(a.string.length + b.string.length);
+        memcpy(out, a.string.start, a.string.length);
+        memcpy(out + a.string.length, b.string.start, b.string.length);
         return (InterpreterObj){
             .tag = ObjType_String,
-            .string = out
+            .string = (StringObj){
+                .start = out,
+                .length = a.string.length + b.string.length,
+                .allocated = true
+            }
         };
     } else if (a.tag == ObjType_Array && b.tag == ObjType_Array) {
         ObjList out;
@@ -421,10 +428,14 @@ InterpreterObj interpretExpr(Expression expr) {
                 }
                 case Tok_StringLit: {
                     // strip leading & trailing quotes!
-                    char* stringContents = malloc(strlen(text) - 1);
-                    memcpy(stringContents, text + 1, strlen(text) - 2);
-                    stringContents[strlen(text) - 2] = 0;
-                    SET_OUT({.tag = ObjType_String, .string = stringContents});
+                    SET_OUT({
+                        .tag = ObjType_String,
+                        .string = (StringObj){
+                            .start = expr.primary.start + 1,
+                            .length = expr.primary.length - 2,
+                            .allocated = false
+                        }
+                    });
                     break;
                 }
                 case Tok_IntLit: {
@@ -470,7 +481,7 @@ bool isTruthy(InterpreterObj obj) {
         case ObjType_Nil: return false;
         case ObjType_Bool: return obj.bool_;
         case ObjType_Int: return obj.int_ > 0;
-        case ObjType_String: return obj.string[0] != 0;
+        case ObjType_String: return obj.string.length > 0;
         case ObjType_Float: return obj.float_ > 0;
         case ObjType_Array: return obj.array.len > 0;
     }

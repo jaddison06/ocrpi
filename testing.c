@@ -232,7 +232,7 @@ static void test_interpreter() {
         }
     });
     expect(result.tag == ObjType_String);
-    expectStr(result.string, "balls");
+    expectNStr(result.string.start, result.string.length, "balls");
 
     Expression a = ((Expression){
         .tag = ExprTag_Primary,

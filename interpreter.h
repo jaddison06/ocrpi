@@ -23,10 +23,16 @@ typedef struct {
     ClassObj class;
 } InstanceObj;
 
+typedef struct {
+    char* start;
+    int length;
+    bool allocated;
+} StringObj;
+
 struct InterpreterObj {
     ObjType tag;
     union {
-        char* string;
+        StringObj string;
         bool bool_;
         int int_;
         float float_;

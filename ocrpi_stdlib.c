@@ -16,84 +16,133 @@ static inline void checkTypes(int count, ObjType types[], ObjList arguments) {
 
 #define TYPELIST(types) (ObjType[]){types}
 
-static char* objToString(InterpreterObj obj) {
+//* cheeky!! allocates!!
+INLINE char* forceString(InterpreterObj obj) {
+    if (obj.tag != ObjType_String) panic(Panic_Stdlib, "Can't force get a C String from a %s!", ObjTypeToString(obj.tag));
+    char* out = malloc(obj.string.length + 1);
+    memcpy(out, obj.string.start, obj.string.length);
+    out[obj.string.length] = '\0';
+    return out;
+}
+
+static StringObj objToString(InterpreterObj obj) {
+    char* out;
+    bool allocated = false;
+
     switch (obj.tag) {
         case ObjType_Ref: {
-            return "<reference>";
+            out = "<reference>";
             // printf("<reference -> ");
             // printObj(*obj.reference);
             // printf(">");
+            break;
         }
         case ObjType_Class: {
-            return "<class>";
+            out = "<class>";
             // printf("<class at %p>", &obj);
+            break;
         }
         case ObjType_Func: {
-            return "<func>";
+            out = "<func>";
             // printf("<func at %p>", &obj);
+            break;
         }
         case ObjType_Proc: {
-            return "<proc>";
+            out = "<proc>";
             // printf("<proc at %p>", &obj);
+            break;
         }
         case ObjType_NativeFunc: {
-            return "<native func>";
+            out = "<native func>";
             // printf("<native func at %p>", &obj);
+            break;
         }
         case ObjType_NativeProc: {
-            return "<native proc>";
+            out = "<native proc>";
             // printf("<native proc at %p>", &obj);
+            break;
         }
         case ObjType_Nil: {
-            return "nil";
+            out = "nil";
+            break;
         }
         case ObjType_Bool: {
-            return obj.bool_ ? "true" : "false";
+            out = obj.bool_ ? "true" : "false";
+            break;
         }
         case ObjType_Int: {
             // todo: enough?
-            char* buf = malloc(20);
-            sprintf(buf, "%i", obj.int_);
-            return buf;
+            out = malloc(20);
+            sprintf(out, "%i", obj.int_);
+            allocated = true;
+            break;
         }
         case ObjType_String: {
-            return obj.string;
+            // brain not entirely working rn but i'm pretty sure that if it's a dynamically alloc'd string
+            // we don't want to be passing it around? copy? esp if passing to ourself via ObjType_Array or whatever
+            //
+            //* yeah okay basically the vibe is we're returning a strong independent young object, if it's allocated
+            //* it'll get freed at some point so it needs to own its string ref!!
+            if (obj.string.allocated) {
+                out = malloc(obj.string.length);
+                memcpy(out, obj.string.start, obj.string.length);
+                allocated = true;
+            } else {
+                return obj.string;
+            }
+            break;
         }
         case ObjType_Float: {
             // todo: enough?
-            char* buf = malloc(40);
-            sprintf(buf, "%f", obj.float_);
-            return buf;
+            char* out = malloc(40);
+            sprintf(out, "%f", obj.float_);
+            allocated = true;
+            break;
         }
         case ObjType_Array: {
             int len = 1;
             int cap = 1;
-            char* buf = malloc(1);
-            buf[0] = '[';
+            out = malloc(1);
+            out[0] = '[';
             for (int i = 0; i < obj.array.len; i++) {
-                char* thisObj = objToString(obj.array.root[i]);
-                int thisLen = strlen(thisObj);
-                while (len + thisLen + 2 > cap) buf = realloc(buf, cap * 2);
-                memcpy(buf + len, thisObj, thisLen);
-                len += thisLen;
-                if (i != obj.array.len - 1) memcpy(buf + len, ", ", 2);
+                StringObj thisObj = objToString(obj.array.root[i]);
+                while (len + thisObj.length + 2 > cap) out = realloc(out, cap * 2);
+                memcpy(out + len, thisObj.start, thisObj.length);
+                len += thisObj.length;
+                if (i != obj.array.len - 1) memcpy(out + len, ", ", 2);
                 len += 2;
             }
-            if (cap - len < 2) buf = realloc(buf, cap - (2 - (cap - len)));
-            buf[len] = ']';
-            buf[len + 1] = '\0';
-            return buf;
+            if (cap - len < 2) out = realloc(out, cap - (2 - (cap - len)));
+            out[len] = ']';
+            out[len + 1] = '\0';
+            break;
         }
         case ObjType_Instance: {
-            return "<class instance>";
+            out = "<class instance>";
             // printf("<class instance at %p>", &obj);
+            break;
         }
     }
+    return (StringObj){
+        .length = strlen(out),
+        .start = out,
+        .allocated = allocated
+    };
 }
 
 void stl_print(ObjList args) {
     for (int i = 0; i < args.len; i++) {
-        printf("%s", objToString(args.root[i]));
+        // todo: what the fuck!!
+        InterpreterObj strObj = (InterpreterObj){.tag = ObjType_String, .string = objToString(args.root[i])};
+        char* str = forceString(strObj);
+        printf("%s", str);
+        if (strObj.string.allocated) {
+            //? i think this should work for eg a string being alloc'd somewhere else and passed as a 'ref'
+            //? (worst case scenario) - the ref gets passed to the NativeProc as a val and objToString copies the string if it's
+            //? been allocated, so we *ALWAYS* only free a string we've allocated ourselves!
+            free(strObj.string.start);
+        }
+        free(str);
     }
     printf("\n");
 }
@@ -128,7 +177,9 @@ InterpreterObj stl_float(ObjList args) {
     InterpreterObj obj = args.root[0];
     switch (obj.tag) {
         case ObjType_String: {
-            out = atof(obj.string);
+            char* str = forceString(obj);
+            out = atof(str);
+            free(str);
             break;
         }
         case ObjType_Int: {
@@ -157,7 +208,9 @@ InterpreterObj stl_int(ObjList args) {
     InterpreterObj obj = args.root[0];
     switch (obj.tag) {
         case ObjType_String: {
-            out = atoi(obj.string);
+            char* str = forceString(obj);
+            out = atoi(str);
+            free(str);
             break;
         }
         case ObjType_Int: {
