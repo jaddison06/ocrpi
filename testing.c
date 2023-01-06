@@ -62,29 +62,7 @@ static void _expectNStr(char* expression, char* expressionStr, int length, char*
     free(buf);
 }
 
-DECL_VEC(int, IntVec)
-DECL_MAP(int, IntMap)
-
-static void testMap() {
-    IntMap intMap = NewIntMap();
-    expect(IntMapFind(&intMap, "eeee") == NULL);
-    IntMapSet(&intMap, "eeee", 3);
-    expect(IntMapFind(&intMap, "eeee") != NULL);
-    expect(*IntMapFind(&intMap, "eeee") == 3);
-    IntMapSet(&intMap, "eeee", 5);
-    expect(IntMapFind(&intMap, "eeee") != NULL);
-    expect(*IntMapFind(&intMap, "eeee") == 5);
-    IntMapRemove(&intMap, "eeee");
-    expect(IntMapFind(&intMap, "eeee") == NULL);
-}
-
-static void panickingFunc() {
-    printf("panicking\n");
-    panic(PANIC_CATCHABLE(Panic_Test, PCC_Test), "balls!!!!!!!");
-}
-
-static void _testAll() {
-    module = "lexer";
+static void test_lexer() {
     char* source = readFile("test/lex.ocr");
     LexOutput lo = lex(source);
     expect(lo.len == 25);
@@ -116,10 +94,11 @@ static void _testAll() {
     expectTok(22, Tok_True);
     expectTok(23, Tok_Then);
     expectTok(24, Tok_EOF);
+}
 
-    module = "parser";
-    source = readFile("test/parse.ocr");
-    lo = lex(source);
+static void test_parser() {
+    char* source = readFile("test/parse.ocr");
+    LexOutput lo = lex(source);
     expect(lo.len == 35);
 
     ParseOutput po = parse(lo);
@@ -207,20 +186,34 @@ static void _testAll() {
     expect(binaryB.b->tag == ExprTag_Primary);
     expect(binaryB.b->primary.length == 1);
     expectNStr(binaryB.b->primary.start, 1, "5");
+}
 
-    module = "parser-error-reporting";
-    source = readFile("test/errorRecovery.ocr");
-    lo = lex(source);
-    po = parse(lo);
+static void test_parser_error_reporting() {
+    char* source = readFile("test/errorRecovery.ocr");
+    LexOutput lo = lex(source);
+    ParseOutput po = parse(lo);
 
     expect(po.errors.len == 2);
     expectStr(po.errors.root[0].msg, "Unexpected token!");
     expectStr(po.errors.root[1].msg, "Expected function name");
+}
 
-    module = "map";
-    testMap();
+DECL_MAP(int, IntMap)
 
-    module = "interpreter";
+static void test_map() {
+    IntMap intMap = NewIntMap();
+    expect(IntMapFind(&intMap, "eeee") == NULL);
+    IntMapSet(&intMap, "eeee", 3);
+    expect(IntMapFind(&intMap, "eeee") != NULL);
+    expect(*IntMapFind(&intMap, "eeee") == 3);
+    IntMapSet(&intMap, "eeee", 5);
+    expect(IntMapFind(&intMap, "eeee") != NULL);
+    expect(*IntMapFind(&intMap, "eeee") == 5);
+    IntMapRemove(&intMap, "eeee");
+    expect(IntMapFind(&intMap, "eeee") == NULL);
+}
+
+static void test_interpreter() {
     InterpreterObj* result = interpretExpr((Expression){
         .tag = ExprTag_Primary,
         .primary = (Token){
@@ -273,8 +266,14 @@ static void _testAll() {
 
     expect(result->tag == ObjType_Int);
     expect(result->int_ == 8);
+}
 
-    module = "panic";
+static void panickingFunc() {
+    printf("panicking\n");
+    panic(PANIC_CATCHABLE(Panic_Test, PCC_Test), "balls!!!!!!!");
+}
+
+static void test_panic() {
     PANIC_TRY {
         panickingFunc();
     } PANIC_CATCH(PCC_Test) {
@@ -282,8 +281,11 @@ static void _testAll() {
         expect((_panicRet & _PANIC_CATCHABLE_CODE_MASK) >> 8 == PCC_Test);
         expect(_panicRet & _PANIC_CATCHABLE_FLAG);
     } PANIC_END_TRY
+}
 
-    module = "vector";
+DECL_VEC(int, IntVec);
+
+static void test_vector() {
     IntVec ints;
     INIT(ints);
     APPEND(ints, 1);
@@ -295,7 +297,15 @@ static void _testAll() {
     }
 }
 
+#define TEST_MODULE(name) do { module = #name; test_##name(); } while (0)
+
 void testAll() {
-    _testAll();
+    TEST_MODULE(lexer);
+    TEST_MODULE(parser);
+    TEST_MODULE(parser_error_reporting);
+    TEST_MODULE(map);
+    TEST_MODULE(interpreter);
+    TEST_MODULE(panic);
+    TEST_MODULE(vector);   
     printf("\n ! \033[0;32m%i tests passed!! <333333\033[0m\n", testCount);
 }
