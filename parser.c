@@ -681,7 +681,7 @@ STATIC void destroyBlock(DeclList block);
 } while (0)
 
 STATIC void destroyExprList(ExprList list) {
-    FOREACH(Expression*, expr, list) {
+    FOREACH(ExprList, list, expr) {
         destroyExpression(*expr);
     }
     DESTROY(list);
@@ -748,7 +748,7 @@ STATIC void destroyStatement(Statement stmt) {
         }
         case StmtTag_If: {
             destroyConditionalBlock(stmt.if_.primary);
-            FOREACH(ConditionalBlock*, currentBranch, stmt.if_.secondary) {
+            FOREACH(ElseIfList, stmt.if_.secondary, currentBranch) {
                 destroyConditionalBlock(*currentBranch);
             }
             if (stmt.if_.hasElse) {
@@ -758,7 +758,7 @@ STATIC void destroyStatement(Statement stmt) {
         }
         case StmtTag_Switch: {
             destroyExpression(stmt.switch_.expr);
-            FOREACH(ConditionalBlock*, currentCase, stmt.switch_.cases) {
+            FOREACH(SwitchCaseList, stmt.switch_.cases, currentCase) {
                 destroyConditionalBlock(*currentCase);
             }
             DESTROY(stmt.switch_.cases);
@@ -768,7 +768,7 @@ STATIC void destroyStatement(Statement stmt) {
             break;
         }
         case StmtTag_Array: {
-            FOREACH(Expression*, currentDimension, stmt.array.dimensions) {
+            FOREACH(ArrayDimensions, stmt.array.dimensions, currentDimension) {
                 destroyExpression(*currentDimension);
             }
             DESTROY(stmt.array.dimensions);
@@ -788,7 +788,7 @@ STATIC void destroyDeclaration(Declaration decl) {
         }
         case DeclTag_Fun: {
             DESTROY(decl.fun.params);
-            FOREACH(DeclOrReturn*, currentDOR, decl.fun.block) {
+            FOREACH(FuncDeclList, decl.fun.block, currentDOR) {
                 switch (currentDOR->tag) {
                     case DOR_decl: {
                         destroyDeclaration(*currentDOR->declaration);
@@ -815,7 +815,7 @@ STATIC void destroyDeclaration(Declaration decl) {
 }
 
 STATIC void destroyBlock(DeclList block) {
-    FOREACH (Declaration*, currentDecl, block) {
+    FOREACH(DeclList, block, currentDecl) {
         destroyDeclaration(*currentDecl);
     }
 }

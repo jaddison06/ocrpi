@@ -44,6 +44,16 @@ STATIC void popScope() {
     currentScope = parentScope;
 }
 
+// if it makes a new object out of some old/temporary ones, free it!!
+STATIC void freeObj(InterpreterObj* obj) {
+    Scope* scope = currentScope;
+    while (scope != NULL) {
+        FOREACH(ObjNS, scope->objects, objCheck) {
+            if (&objCheck->value == obj) return;
+        }
+    }
+}
+
 InterpreterObj* interpretExpr(Expression expr);
 bool isTruthy(InterpreterObj obj);
 STATIC void interpretDecl(Declaration decl);
@@ -71,7 +81,7 @@ STATIC INLINE void setVar(char* name, InterpreterObj value) {
 STATIC ObjList parseArgs(CallExpr call) {
     ObjList out;
     INIT(out);
-    FOREACH(Expression*, current, call.arguments) {
+    FOREACH(ExprList, call.arguments, current) {
         APPEND(out, *interpretExpr(*current));
     }
     return out;
@@ -197,10 +207,10 @@ STATIC InterpreterObj add(Expression* a, Expression* b) {
     } else if (aRes->tag == ObjType_Array && bRes->tag == ObjType_Array) {
         ObjList out;
         INIT(out);
-        FOREACH(InterpreterObj*, obj, aRes->array) {
+        FOREACH(ObjList, aRes->array, obj) {
             APPEND(out, *obj);
         }
-        FOREACH(InterpreterObj*, obj, bRes->array) {
+        FOREACH(ObjList, bRes->array, obj) {
             APPEND(out, *obj);
         }
         return (InterpreterObj){
@@ -290,14 +300,22 @@ InterpreterObj binaryExpr(TokType operator, Expression* a, Expression* b) {
 // sometimes we don't need it allocated cos we want to return the ADDRESS!! not just the value - 
 // think evaluating variables for byRef passing
 InterpreterObj* interpretExpr(Expression expr) {
-    InterpreterObj* out = malloc(sizeof(InterpreterObj));
+    InterpreterObj* out;
+// alloc & set out
+// (sometimes we want to set it as a pointer to an already-existing object, sometimes we want to create something!)
+// the VA_ARGS are a disgusting hack to allow inline struct creation - the preprocessor interprets the `,` between
+// struct fields as the end of the argument
+#define SET_OUT(...) do { \
+    out = malloc(sizeof(InterpreterObj)); \
+    *out = (InterpreterObj)__VA_ARGS__; \
+} while (0)
 
     switch (expr.tag) {
         case ExprTag_Unary: {
             break;
         }
         case ExprTag_Binary: {
-            *out = binaryExpr(expr.binary.operator.type, expr.binary.a, expr.binary.b);
+            SET_OUT(binaryExpr(expr.binary.operator.type, expr.binary.a, expr.binary.b));
             break;
         }
         case ExprTag_Call: {
@@ -342,7 +360,7 @@ InterpreterObj* interpretExpr(Expression expr) {
                             Scope* outerScope = currentScope;
                             currentScope = executionScope;
 
-                            FOREACH(DeclOrReturn*, currentDOR, calleeObj->func.block) {
+                            FOREACH(FuncDeclList, calleeObj->func.block, currentDOR) {
                                 if (currentDOR->tag == DOR_return) {
                                     out = interpretExpr(currentDOR->return_);
                                     destroyScope(executionScope);
@@ -364,7 +382,7 @@ InterpreterObj* interpretExpr(Expression expr) {
                         }
                         case ObjType_NativeFunc: {
                             ObjList args = parseArgs(expr.call);
-                            *out = calleeObj->nativeFunc(args);
+                            SET_OUT(calleeObj->nativeFunc(args));
                             DESTROY(args);
                             break;
                         }
@@ -372,7 +390,7 @@ InterpreterObj* interpretExpr(Expression expr) {
                             ObjList args = parseArgs(expr.call);
                             calleeObj->nativeProc(args);
                             DESTROY(args);
-                            out->tag = ObjType_Nil;
+                            SET_OUT({.tag = ObjType_Nil});
                             break;
                         }
                     }
@@ -399,13 +417,12 @@ InterpreterObj* interpretExpr(Expression expr) {
             switch (expr.primary.type) {
                 // todo: handle self
                 case Tok_Nil: {
-                    out->tag = ObjType_Nil;
+                    SET_OUT({.tag = ObjType_Nil});
                     break;
                 }
                 case Tok_True:
                 case Tok_False: {
-                    out->tag = ObjType_Bool;
-                    out->bool_ = expr.primary.type == Tok_True;
+                    SET_OUT({.tag = ObjType_Bool, .bool_ = expr.primary.type == Tok_True});
                     break;
                 }
                 case Tok_StringLit: {
@@ -413,18 +430,15 @@ InterpreterObj* interpretExpr(Expression expr) {
                     char* stringContents = malloc(strlen(text) - 1);
                     memcpy(stringContents, text + 1, strlen(text) - 2);
                     stringContents[strlen(text) - 2] = 0;
-                    out->tag = ObjType_String;
-                    out->string = stringContents;
+                    SET_OUT({.tag = ObjType_String, .string = stringContents});
                     break;
                 }
                 case Tok_IntLit: {
-                    out->tag = ObjType_Int;
-                    out->int_ = atoi(text);
+                    SET_OUT({.tag = ObjType_Int, .int_ = atoi(text)});
                     break;
                 }
                 case Tok_FloatLit: {
-                    out->tag = ObjType_Float;
-                    out->float_ = strtof(text, NULL);
+                    SET_OUT({.tag = ObjType_Float, .float_ = strtof(text, NULL)});
                     break;
                 }
                 case Tok_Identifier: {
@@ -439,6 +453,8 @@ InterpreterObj* interpretExpr(Expression expr) {
         }
     }
     return out;
+
+#undef SET_OUT
 }
 
 bool isTruthy(InterpreterObj obj) {
@@ -540,7 +556,7 @@ STATIC void interpretStmt(Statement stmt) {
             if (isExprTruthy(stmt.if_.primary.condition)) {
                 interpretBlock(*stmt.if_.primary.block);
             } else {
-                FOREACH(ConditionalBlock*, currentBranch, stmt.if_.secondary) {
+                FOREACH(ElseIfList, stmt.if_.secondary, currentBranch) {
                     if (isExprTruthy(currentBranch->condition)) {
                         interpretBlock(*currentBranch->block);
                         break;

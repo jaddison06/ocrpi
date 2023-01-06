@@ -209,6 +209,13 @@ static void test_map() {
     IntMapSet(&intMap, "eeee", 5);
     expect(IntMapFind(&intMap, "eeee") != NULL);
     expect(*IntMapFind(&intMap, "eeee") == 5);
+    int count = 0;
+    FOREACH(IntMap, intMap, entry) {
+        count++;
+        expectStr(entry->key, "eeee");
+        expect(entry->value == 5);
+    }
+    expect(count == 1);
     IntMapRemove(&intMap, "eeee");
     expect(IntMapFind(&intMap, "eeee") == NULL);
 }
@@ -283,7 +290,7 @@ static void test_panic() {
     } PANIC_END_TRY
 }
 
-DECL_VEC(int, IntVec);
+DECL_VEC(int, IntVec)
 
 static void test_vector() {
     IntVec ints;
@@ -292,7 +299,7 @@ static void test_vector() {
     APPEND(ints, 2);
     APPEND(ints, 3);
     int j = 1;
-    FOREACH(int*, i, ints) {
+    FOREACH(IntVec, ints, i) {
         expect(*i == j++);
     }
 }

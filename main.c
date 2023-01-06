@@ -25,8 +25,8 @@ int main(int argc, char** argv) {
         char* source = readFile(argv[1]);
         LexOutput lo = lex(source);
         ParseOutput po = parse(lo);
-        // if (po.errors.len > 0) exit(1);
-        // interpret(po);
+        if (po.errors.len > 0) exit(1);
+        interpret(po);
         destroyParseOutput(po);
         destroyLexOutput(lo);
         free(source);

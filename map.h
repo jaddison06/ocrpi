@@ -7,7 +7,7 @@
 
 #include "vector.h"
 
-#define _EntryName(name) _##name##Entry
+#define _MapEntryName(name) _Map_##name##_Entry
 
 #define _NewMap(name) static inline name New##name() { \
     name out; \
@@ -18,20 +18,20 @@
 #define _Destroy(name) static inline void Destroy##name(name* map) { DESTROY(*map); }
 
 #define _Find(type, name) static inline type* name##Find(name* map, char* key) { \
-    FOREACH(_EntryName(name)*, entry, *map) { \
+    FOREACH(name, *map, entry) { \
         if (strcmp(entry->key, key) == 0) return &entry->value; \
     } \
     return NULL; \
 }
 
 #define _Set(type, name) static inline void name##Set(name* map, char* key, type value) { \
-    FOREACH(_EntryName(name)*, entry, *map) { \
+    FOREACH(name, *map, entry) { \
         if (strcmp(entry->key, key) == 0) { \
             entry->value = value; \
             return; \
         } \
     } \
-    APPEND(*map, ((_EntryName(name)) {.key = key, .value = value})); \
+    APPEND(*map, ((_MapEntryName(name)) {.key = key, .value = value})); \
 }
 
 #define _Remove(name) static inline void name##Remove(name* map, char* key) { \
@@ -47,8 +47,8 @@
     typedef struct { \
         char* key; \
         type value; \
-    } _EntryName(name); \
-    DECL_VEC(_EntryName(name), name) \
+    } _MapEntryName(name); \
+    DECL_VEC(_MapEntryName(name), name) \
     _NewMap(name) \
     _Destroy(name) \
     _Find(type, name) \

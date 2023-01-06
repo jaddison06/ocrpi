@@ -6,6 +6,8 @@
 #include <string.h>
 #include <stdio.h>
 
+#define _VecEntryName(name) _Vec_##name##_Entry
+
 // doesn't do any additional typedefs so theoretically ur in the clear
 // to have multiple identical vec types. probs best not to tho -
 // keep this in .c files where poss
@@ -13,13 +15,15 @@
     type* root; \
     int len, cap; \
     type* elemTempStorage; \
-} name;
+} name; \
+typedef type _VecEntryName(name);
 
 #define DECL_VEC_NO_TYPEDEF(type, name) struct name { \
     type* root; \
     int len, cap; \
     type* elemTempStorage; \
-};
+}; \
+typedef type _VecEntryName(name);
 
 #define INIT(vec) do { \
     (vec).root = malloc(sizeof(*(vec).root)); \
@@ -33,7 +37,7 @@
     free((vec).elemTempStorage); \
 } while(0)
 
-#define FOREACH(type, iterator, vec) for (type iterator = (vec).root; iterator - (vec).root < (vec).len; iterator++)
+#define FOREACH(name, vec, iterator) for (_VecEntryName(name)* iterator = (vec).root; iterator - (vec).root < (vec).len; iterator++)
 
 
 // new and improved! can take an rvalue - no need to pass in temporary variables!!
