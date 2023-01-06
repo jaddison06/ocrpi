@@ -41,6 +41,6 @@ struct InterpreterObj {
     };
 };
 
-InterpreterObj* interpretExpr(Expression expr);
+InterpreterObj interpretExpr(Expression expr);
 bool isTruthy(InterpreterObj obj);
 void interpret(ParseOutput po);

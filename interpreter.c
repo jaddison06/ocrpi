@@ -44,17 +44,10 @@ STATIC void popScope() {
     currentScope = parentScope;
 }
 
-// if it makes a new object out of some old/temporary ones, free it!!
-STATIC void freeObj(InterpreterObj* obj) {
-    Scope* scope = currentScope;
-    while (scope != NULL) {
-        FOREACH(ObjNS, scope->objects, objCheck) {
-            if (&objCheck->value == obj) return;
-        }
-    }
-}
-
-InterpreterObj* interpretExpr(Expression expr);
+// Interpret the expression & return the result
+InterpreterObj interpretExpr(Expression expr);
+// Interpret the expression & return an absolute, non-referenced result
+InterpreterObj absExpr(Expression expr);
 bool isTruthy(InterpreterObj obj);
 STATIC void interpretDecl(Declaration decl);
 STATIC void interpretBlock(DeclList block);
@@ -82,7 +75,7 @@ STATIC ObjList parseArgs(CallExpr call) {
     ObjList out;
     INIT(out);
     FOREACH(ExprList, call.arguments, current) {
-        APPEND(out, *interpretExpr(*current));
+        APPEND(out, interpretExpr(*current));
     }
     return out;
 }
@@ -109,7 +102,7 @@ STATIC bool isLValue(Expression expr) {
 }
 
 STATIC bool isExprTruthy(Expression expr) {
-    return isTruthy(*interpretExpr(expr));
+    return isTruthy(interpretExpr(expr));
 }
 
 STATIC INLINE void assign(Expression* a, InterpreterObj b) {
@@ -117,8 +110,9 @@ STATIC INLINE void assign(Expression* a, InterpreterObj b) {
     // assignment or initialization!!
     PANIC_TRY {
         // try and find the object and assign to it
-        InterpreterObj* target = interpretExpr(*a);
-        *target = b;
+        InterpreterObj target = interpretExpr(*a);
+        if (target.tag != ObjType_Ref) panic(Panic_Interpreter, "what");
+        *target.reference = b;
     } PANIC_CATCH(PCC_InterpreterUnknownVar) {
         // the object doesn't exist - create it!
 
@@ -132,30 +126,30 @@ STATIC INLINE void assign(Expression* a, InterpreterObj b) {
     } PANIC_END_TRY
 }
 
-STATIC bool equal(InterpreterObj* a, InterpreterObj* b) {
-    if (a->tag != b->tag) return false;
-    switch (a->tag) {
-        case ObjType_Ref: return equal(a->reference, b->reference);
+STATIC bool equal(InterpreterObj a, InterpreterObj b) {
+    if (a.tag != b.tag) return false;
+    switch (a.tag) {
+        case ObjType_Ref: return equal(*a.reference, *b.reference);
 
         case ObjType_Class:
         case ObjType_Func:
         case ObjType_Proc:
         case ObjType_NativeFunc:
-        case ObjType_NativeProc: return a == b;
+        case ObjType_NativeProc:
+        case ObjType_Instance: panic(Panic_Interpreter, "Can't check %s for equality yet!", ObjTypeToString(a.tag));
 
         case ObjType_Nil: return true;
-        case ObjType_Bool: return a->bool_ == b->bool_;
-        case ObjType_Int: return a->int_ == b->int_;
-        case ObjType_String: return strcmp(a->string, b->string) == 0;
-        case ObjType_Float: return a->float_ == b->float_;
+        case ObjType_Bool: return a.bool_ == b.bool_;
+        case ObjType_Int: return a.int_ == b.int_;
+        case ObjType_String: return strcmp(a.string, b.string) == 0;
+        case ObjType_Float: return a.float_ == b.float_;
         case ObjType_Array: {
-            if (a->array.len != b->array.len) return false;
-            for (int i = 0; i < a->array.len; i++) {
-                if (!equal(&a->array.root[i], &b->array.root[i])) return false;
+            if (a.array.len != b.array.len) return false;
+            for (int i = 0; i < a.array.len; i++) {
+                if (!equal(a.array.root[i], b.array.root[i])) return false;
             }
             return true;
         }
-        case ObjType_Instance: panic(Panic_Interpreter, "Can't check instances for equality yet!");
     }
 }
 
@@ -163,27 +157,27 @@ STATIC bool exprEqual(Expression* a, Expression* b) {
     return equal(interpretExpr(*a), interpretExpr(*b));
 }
 
-#define NUMERIC_OP(name, op) STATIC InterpreterObj name##Objs(InterpreterObj* aRes, InterpreterObj* bRes) { \
-    if (aRes->tag == ObjType_Float) { \
-        float aNum = aRes->float_; \
-        if (bRes->tag == ObjType_Float) { \
-            float bNum = bRes->float_; \
+#define NUMERIC_OP(name, op) STATIC InterpreterObj name##Objs(InterpreterObj aRes, InterpreterObj bRes) { \
+    if (aRes.tag == ObjType_Float) { \
+        float aNum = aRes.float_; \
+        if (bRes.tag == ObjType_Float) { \
+            float bNum = bRes.float_; \
             return (InterpreterObj){.tag = ObjType_Float, .float_ = op}; \
-        } else if (bRes->tag == ObjType_Int) { \
-            int bNum = bRes->int_; \
+        } else if (bRes.tag == ObjType_Int) { \
+            int bNum = bRes.int_; \
             return (InterpreterObj){.tag = ObjType_Float, .float_ = op}; \
         } \
-    } else if (aRes->tag == ObjType_Int) { \
-        float aNum = aRes->int_; \
-        if (bRes->tag == ObjType_Float) { \
-            float bNum = bRes->float_; \
+    } else if (aRes.tag == ObjType_Int) { \
+        float aNum = aRes.int_; \
+        if (bRes.tag == ObjType_Float) { \
+            float bNum = bRes.float_; \
             return (InterpreterObj){.tag = ObjType_Int, .int_ = op}; \
-        } else if (bRes->tag == ObjType_Int) { \
-            int bNum = bRes->int_; \
+        } else if (bRes.tag == ObjType_Int) { \
+            int bNum = bRes.int_; \
             return (InterpreterObj){.tag = ObjType_Int, .int_ = op}; \
         } \
     } \
-    panic(Panic_Interpreter, "Invalid operator between %s and %s", ObjTypeToString(aRes->tag), ObjTypeToString(bRes->tag)); \
+    panic(Panic_Interpreter, "Invalid operator between %s and %s", ObjTypeToString(aRes.tag), ObjTypeToString(bRes.tag)); \
 } \
 STATIC InterpreterObj name(Expression* a, Expression* b) { return name##Objs(interpretExpr(*a), interpretExpr(*b)); }
 
@@ -194,23 +188,23 @@ NUMERIC_OP(subtract, aNum - bNum)
 NUMERIC_OP(_addNum, aNum + bNum)
 
 STATIC InterpreterObj add(Expression* a, Expression* b) {
-    InterpreterObj* aRes = interpretExpr(*a);
-    InterpreterObj* bRes = interpretExpr(*b);
-    if (aRes->tag == ObjType_String && bRes->tag == ObjType_String) {
-        char* out = malloc(strlen(aRes->string) + strlen(bRes->string) + 1);
-        memcpy(out, aRes->string, strlen(aRes->string) + 1);
-        strcat(out, bRes->string);
+    InterpreterObj aRes = interpretExpr(*a);
+    InterpreterObj bRes = interpretExpr(*b);
+    if (aRes.tag == ObjType_String && bRes.tag == ObjType_String) {
+        char* out = malloc(strlen(aRes.string) + strlen(bRes.string) + 1);
+        memcpy(out, aRes.string, strlen(aRes.string) + 1);
+        strcat(out, bRes.string);
         return (InterpreterObj){
             .tag = ObjType_String,
             .string = out
         };
-    } else if (aRes->tag == ObjType_Array && bRes->tag == ObjType_Array) {
+    } else if (aRes.tag == ObjType_Array && bRes.tag == ObjType_Array) {
         ObjList out;
         INIT(out);
-        FOREACH(ObjList, aRes->array, obj) {
+        FOREACH(ObjList, aRes.array, obj) {
             APPEND(out, *obj);
         }
-        FOREACH(ObjList, bRes->array, obj) {
+        FOREACH(ObjList, bRes.array, obj) {
             APPEND(out, *obj);
         }
         return (InterpreterObj){
@@ -222,16 +216,16 @@ STATIC InterpreterObj add(Expression* a, Expression* b) {
 }
 
 STATIC bool less(Expression* a, Expression* b) {
-    InterpreterObj* aRes = interpretExpr(*a);
-    InterpreterObj* bRes = interpretExpr(*b);
-    if (aRes->tag == ObjType_Float) {
-        if (bRes->tag == ObjType_Float) return aRes->float_ < bRes->float_;
-        else if (bRes->tag == ObjType_Int) return aRes->float_ < bRes->int_;
-    } else if (aRes->tag == ObjType_Int) {
-        if (bRes->tag == ObjType_Float) return aRes->int_ < bRes->float_;
-        else if (bRes->tag == ObjType_Int) return aRes->int_ < bRes->int_;
+    InterpreterObj aRes = interpretExpr(*a);
+    InterpreterObj bRes = interpretExpr(*b);
+    if (aRes.tag == ObjType_Float) {
+        if (bRes.tag == ObjType_Float) return aRes.float_ < bRes.float_;
+        else if (bRes.tag == ObjType_Int) return aRes.float_ < bRes.int_;
+    } else if (aRes.tag == ObjType_Int) {
+        if (bRes.tag == ObjType_Float) return aRes.int_ < bRes.float_;
+        else if (bRes.tag == ObjType_Int) return aRes.int_ < bRes.int_;
     }
-    panic(Panic_Interpreter, "Invalid operator between %s and %s", ObjTypeToString(aRes->tag), ObjTypeToString(bRes->tag));
+    panic(Panic_Interpreter, "Invalid operator between %s and %s", ObjTypeToString(aRes.tag), ObjTypeToString(bRes.tag));
 }
 
 STATIC INLINE bool greaterEqual(Expression* a, Expression* b) {
@@ -251,7 +245,7 @@ InterpreterObj binaryExpr(TokType operator, Expression* a, Expression* b) {
 
     switch (operator) {
         case Tok_Equal: {
-            assign(a, *interpretExpr(*b));
+            assign(a, interpretExpr(*b));
             break;
         }
         case Tok_ExpEqual: {
@@ -293,65 +287,61 @@ InterpreterObj binaryExpr(TokType operator, Expression* a, Expression* b) {
         case Tok_Minus: return subtract(a, b);
     }
 
+    return interpretExpr(*a);
+
 #undef BOOLOBJ
 }
 
-// todo: where do we alloc out? where do we free it?
-// sometimes we don't need it allocated cos we want to return the ADDRESS!! not just the value - 
-// think evaluating variables for byRef passing
-InterpreterObj* interpretExpr(Expression expr) {
-    InterpreterObj* out;
-// alloc & set out
-// (sometimes we want to set it as a pointer to an already-existing object, sometimes we want to create something!)
-// the VA_ARGS are a disgusting hack to allow inline struct creation - the preprocessor interprets the `,` between
-// struct fields as the end of the argument
-#define SET_OUT(...) do { \
-    out = malloc(sizeof(InterpreterObj)); \
-    *out = (InterpreterObj)__VA_ARGS__; \
-} while (0)
+InterpreterObj interpretExpr(Expression expr) {
+    InterpreterObj out;
+#define SET_OUT(...) out = (InterpreterObj)__VA_ARGS__
 
     switch (expr.tag) {
         case ExprTag_Unary: {
             break;
         }
         case ExprTag_Binary: {
-            SET_OUT(binaryExpr(expr.binary.operator.type, expr.binary.a, expr.binary.b));
+            out = binaryExpr(expr.binary.operator.type, expr.binary.a, expr.binary.b);
             break;
         }
         case ExprTag_Call: {
             switch (expr.call.tag) {
                 case Call_Call: {
-                    InterpreterObj* calleeObj = interpretExpr(*expr.call.callee);
+                    InterpreterObj calleeObj = interpretExpr(*expr.call.callee);
 
                     if (!(
-                        calleeObj->tag == ObjType_Func ||
-                        calleeObj->tag == ObjType_Proc ||
-                        calleeObj->tag == ObjType_NativeFunc ||
-                        calleeObj->tag == ObjType_NativeProc
+                        calleeObj.tag == ObjType_Func ||
+                        calleeObj.tag == ObjType_Proc ||
+                        calleeObj.tag == ObjType_NativeFunc ||
+                        calleeObj.tag == ObjType_NativeProc
                     ))
                         panic(Panic_Interpreter, "Can't call this object!");
 
-                    switch (calleeObj->tag) {
+                    switch (calleeObj.tag) {
                         case ObjType_Func: {
                             // Create a new scope as the function's context
                             Scope* executionScope = newScope();
                             // no closures for you!!
                             executionScope->parent = globalScope;
 
-                            if (expr.call.arguments.len != calleeObj->func.params.len)
-                                panic(Panic_Interpreter, "Called function %s with %i args instead of %i", tokText(calleeObj->func.name), expr.call.arguments.len, calleeObj->func.params.len);
+                            if (expr.call.arguments.len != calleeObj.func.params.len)
+                                panic(Panic_Interpreter, "Called function %s with %i args instead of %i", tokText(calleeObj.func.name), expr.call.arguments.len, calleeObj.func.params.len);
+
+                            // We're gonna be passing these in as POINTERS so 
+                            ObjList referenceArgs;
+                            INIT(referenceArgs);
 
                             // Evaluate function arguments in the CURRENT SCOPE, adding results to the NEW SCOPE
                             for (int i = 0; i < expr.call.arguments.len; i++) {
-                                InterpreterObj* arg = interpretExpr(expr.call.arguments.root[i]);
-                                if (calleeObj->func.params.root[i].passMode == Param_byRef) {
+                                InterpreterObj arg = interpretExpr(expr.call.arguments.root[i]);
+                                if (calleeObj.func.params.root[i].passMode == Param_byRef) {
                                     if (!isLValue(expr.call.arguments.root[i])) panic(Panic_Interpreter, "Can't pass a %s by reference!", ExprTagToString(expr.call.arguments.root[i].tag));
-                                    ObjNSSet(&executionScope->objects, tokText(calleeObj->func.params.root[i].name), (InterpreterObj){
+                                    ObjNSSet(&executionScope->objects, tokText(calleeObj.func.params.root[i].name), (InterpreterObj){
                                         .tag = ObjType_Ref,
-                                        .reference = arg
+                                        .reference = &arg
                                     });
                                 } else {
-                                    ObjNSSet(&executionScope->objects, tokText(calleeObj->func.params.root[i].name), *arg);
+                                    ObjNSSet(&executionScope->objects, tokText(calleeObj.func.params.root[i].name), arg);
                                 }
                             }
 
@@ -360,7 +350,7 @@ InterpreterObj* interpretExpr(Expression expr) {
                             Scope* outerScope = currentScope;
                             currentScope = executionScope;
 
-                            FOREACH(FuncDeclList, calleeObj->func.block, currentDOR) {
+                            FOREACH(FuncDeclList, calleeObj.func.block, currentDOR) {
                                 if (currentDOR->tag == DOR_return) {
                                     out = interpretExpr(currentDOR->return_);
                                     destroyScope(executionScope);
@@ -373,7 +363,7 @@ InterpreterObj* interpretExpr(Expression expr) {
                             }
 
                             // we've interpreted everything in the func - why haven't we returned!!
-                            panic(Panic_Interpreter, "Function %s must return a value!", tokText(calleeObj->func.name));
+                            panic(Panic_Interpreter, "Function %s must return a value!", tokText(calleeObj.func.name));
 
                             returned: break;
                         }
@@ -382,13 +372,13 @@ InterpreterObj* interpretExpr(Expression expr) {
                         }
                         case ObjType_NativeFunc: {
                             ObjList args = parseArgs(expr.call);
-                            SET_OUT(calleeObj->nativeFunc(args));
+                            out = calleeObj.nativeFunc(args);
                             DESTROY(args);
                             break;
                         }
                         case ObjType_NativeProc: {
                             ObjList args = parseArgs(expr.call);
-                            calleeObj->nativeProc(args);
+                            calleeObj.nativeProc(args);
                             DESTROY(args);
                             SET_OUT({.tag = ObjType_Nil});
                             break;
@@ -444,7 +434,7 @@ InterpreterObj* interpretExpr(Expression expr) {
                 case Tok_Identifier: {
                     InterpreterObj* obj = findObj(text);
                     if (obj == NULL) panic(PANIC_CATCHABLE(Panic_Interpreter, PCC_InterpreterUnknownVar), "Unknown variable %s!", text);
-                    out = obj;
+                    SET_OUT({.tag = ObjType_Ref, .reference = obj});
                     break;
                 }
             }
@@ -455,6 +445,12 @@ InterpreterObj* interpretExpr(Expression expr) {
     return out;
 
 #undef SET_OUT
+}
+
+InterpreterObj absExpr(Expression expr) {
+    InterpreterObj out = interpretExpr(expr);
+    while (out.tag == ObjType_Ref) out = *out.reference;
+    return out;
 }
 
 bool isTruthy(InterpreterObj obj) {
@@ -484,12 +480,12 @@ STATIC void interpretStmt(Statement stmt) {
             break;
         }
         case StmtTag_Global: {
-            ObjNSSet(&globalScope->objects, tokText(stmt.global.name), *interpretExpr(stmt.global.initializer));
+            ObjNSSet(&globalScope->objects, tokText(stmt.global.name), interpretExpr(stmt.global.initializer));
             break;
         }
         case StmtTag_For: {
             pushScope();
-            setVar(tokText(stmt.for_.iterator), *interpretExpr(stmt.for_.min));
+            setVar(tokText(stmt.for_.iterator), interpretExpr(stmt.for_.min));
             Expression iterator = (Expression){
                 .tag = ExprTag_Primary,
                 .primary = stmt.for_.iterator,
