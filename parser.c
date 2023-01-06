@@ -103,7 +103,7 @@ STATIC Expression grouping() {
 }
 
 STATIC Expression super() {
-    Expression out;
+    // todo: does this even work?
     if (match(Tok_Super)) {
         consume(Tok_Dot, "Expected '.' after 'super'");
         return (Expression){
@@ -666,6 +666,7 @@ ParseOutput parse(LexOutput lo) {
     return out;
 }
 
+STATIC void destroyExpression(Expression expr);
 STATIC void destroyBlock(DeclList block);
 
 #define DECL_LIST_DESTROY(dl) do { \
@@ -674,8 +675,51 @@ STATIC void destroyBlock(DeclList block);
     free(dl); \
 } while (0)
 
-STATIC void destroyExpression(Expression expr) {
+#define DESTROY_FREE(expr) do { \
+    destroyExpression(*expr); \
+    free(expr); \
+} while (0)
 
+STATIC void destroyExprList(ExprList list) {
+    FOREACH(Expression*, expr, list) {
+        destroyExpression(*expr);
+    }
+    DESTROY(list);
+}
+
+STATIC void destroyExpression(Expression expr) {
+    switch (expr.tag) {
+        case ExprTag_Unary: {
+            DESTROY_FREE(expr.unary.operand);
+            break;
+        }
+        case ExprTag_Binary: {
+            DESTROY_FREE(expr.binary.a);
+            DESTROY_FREE(expr.binary.b);
+            break;
+        }
+        case ExprTag_Call: {
+            if (
+                expr.call.tag == Call_Call ||
+                expr.call.tag == Call_Array
+            ) {
+                destroyExprList(expr.call.arguments);
+                break;
+            }
+            DESTROY_FREE(expr.call.callee);
+            break;
+        }
+        case ExprTag_Super: {
+            break;
+        }
+        case ExprTag_Grouping: {
+            DESTROY_FREE(expr.grouping);
+            break;
+        }
+        case ExprTag_Primary: {
+            break;
+        }
+    }
 }
 
 STATIC void destroyConditionalBlock(ConditionalBlock cb) {
@@ -686,9 +730,13 @@ STATIC void destroyConditionalBlock(ConditionalBlock cb) {
 STATIC void destroyStatement(Statement stmt) {
     switch (stmt.tag) {
         case StmtTag_Global: {
+            destroyExpression(stmt.global.initializer);
             break;
         }
         case StmtTag_For: {
+            destroyExpression(stmt.for_.min);
+            destroyExpression(stmt.for_.max);
+            destroyBlock(*stmt.for_.block);
             break;
         }
         case StmtTag_While: {
@@ -702,7 +750,10 @@ STATIC void destroyStatement(Statement stmt) {
         case StmtTag_If: {
             destroyConditionalBlock(stmt.if_.primary);
             FOREACH(ConditionalBlock*, currentBranch, stmt.if_.secondary) {
-
+                destroyConditionalBlock(*currentBranch);
+            }
+            if (stmt.if_.hasElse) {
+                destroyConditionalBlock(stmt.if_.else_);
             }
             break;
         }
