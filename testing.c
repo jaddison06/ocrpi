@@ -221,7 +221,7 @@ static void test_map() {
 }
 
 static void test_interpreter() {
-    InterpreterObj* result = interpretExpr((Expression){
+    InterpreterObj result = interpretExpr((Expression){
         .tag = ExprTag_Primary,
         .primary = (Token){
             .col = 0,
@@ -231,8 +231,8 @@ static void test_interpreter() {
             .type = Tok_StringLit
         }
     });
-    expect(result->tag == ObjType_String);
-    expectStr(result->string, "balls");
+    expect(result.tag == ObjType_String);
+    expectStr(result.string, "balls");
 
     Expression a = ((Expression){
         .tag = ExprTag_Primary,
@@ -271,8 +271,8 @@ static void test_interpreter() {
         }
     });
 
-    expect(result->tag == ObjType_Int);
-    expect(result->int_ == 8);
+    expect(result.tag == ObjType_Int);
+    expect(result.int_ == 8);
 }
 
 static void panickingFunc() {
