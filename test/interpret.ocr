@@ -9,3 +9,13 @@ print(a == "Hello, Assignment!")
 print(10 - 7)
 print(2 + 3)
 print("Hello" + ", " + "Concatenation!")
+
+// get allocated bitch!!
+a = "str1" + "str2"
+
+print(a)
+
+// oh no!! did the previous concatenation allocate memory!! what happens now?
+a = "str3" + "str4"
+
+print(a)

@@ -62,10 +62,27 @@ STATIC void popScope() {
     currentScope = parentScope;
 }
 
+#define _EXPR_SHORTCUT(returnType, name) STATIC returnType name##Exprs(Expression a, Expression b) { \
+    InterpreterObj aObj = interpretExpr(a); \
+    InterpreterObj bObj = interpretExpr(b); \
+    returnType out = name(aObj, bObj); \
+    freeObj(aObj); \
+    freeObj(bObj); \
+    return out; \
+}
+
+#define _SINGLE_EXPR_SHORTCUT(returnType, name) STATIC returnType name##Expr(Expression expr) { \
+    InterpreterObj obj = interpretExpr(expr); \
+    returnType out = name(obj); \
+    freeObj(obj); \
+    return out; \
+}
+
 // Interpret the expression & return the result
 InterpreterObj interpretExpr(Expression expr);
 STATIC INLINE InterpreterObj IOAbs(InterpreterObj obj);
 bool isTruthy(InterpreterObj obj);
+_SINGLE_EXPR_SHORTCUT(bool, isTruthy)
 STATIC void interpretDecl(Declaration decl);
 STATIC void interpretBlock(DeclList block);
 
@@ -90,22 +107,6 @@ STATIC INLINE InterpreterObj* setVar(char* name, InterpreterObj value) {
     }
     // todo: searches, we already know it won't find anthing
     else return ObjNSSet(&currentScope->objects, name, value);
-}
-
-#define _EXPR_SHORTCUT(returnType, name) STATIC returnType name##Exprs(Expression a, Expression b) { \
-    InterpreterObj aObj = interpretExpr(a); \
-    InterpreterObj bObj = interpretExpr(b); \
-    returnType out = name(aObj, bObj); \
-    freeObj(aObj); \
-    freeObj(bObj); \
-    return out; \
-}
-
-#define _SINGLE_EXPR_SHORTCUT(returnType, name) STATIC returnType name##Expr(Expression expr) { \
-    InterpreterObj obj = interpretExpr(expr); \
-    returnType out = name(obj); \
-    freeObj(obj); \
-    return out; \
 }
 
 STATIC INLINE InterpreterObj assign(Expression a, InterpreterObj b) {
@@ -532,8 +533,6 @@ bool isTruthy(InterpreterObj obj) {
         case ObjType_Array: return obj.array.len > 0;
     }
 }
-
-_SINGLE_EXPR_SHORTCUT(bool, isTruthy)
 
 STATIC void interpretStmt(Statement stmt) {
     switch (stmt.tag) {
