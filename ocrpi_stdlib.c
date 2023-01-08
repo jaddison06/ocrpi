@@ -78,9 +78,6 @@ static StringObj objToString(InterpreterObj obj) {
             break;
         }
         case ObjType_String: {
-            // brain not entirely working rn but i'm pretty sure that if it's a dynamically alloc'd string
-            // we don't want to be passing it around? copy? esp if passing to ourself via ObjType_Array or whatever
-            //
             //* yeah okay basically the vibe is we're returning a strong independent young object, if it's allocated
             //* it'll get freed at some point so it needs to own its string ref!!
             if (obj.string.allocated) {
@@ -137,9 +134,6 @@ void stl_print(ObjList args) {
         char* str = forceString(strObj);
         printf("%s", str);
         if (strObj.string.allocated) {
-            //? i think this should work for eg a string being alloc'd somewhere else and passed as a 'ref'
-            //? (worst case scenario) - the ref gets passed to the NativeProc as a val and objToString copies the string if it's
-            //? been allocated, so we *ALWAYS* only free a string we've allocated ourselves!
             free(strObj.string.start);
         }
         free(str);

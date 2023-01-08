@@ -26,6 +26,12 @@ STATIC Scope* newScope() {
 }
 
 STATIC void destroyScope(Scope* scope) {
+    FOREACH(ObjNS, scope->objects, object) {
+        if (object->value.nameAllocated) {
+            // whoops!!!!!
+            free(object->key);
+        }
+    }
     DESTROY(scope->objects);
     free(scope);
 }
@@ -98,6 +104,7 @@ STATIC INLINE InterpreterObj assign(Expression a, InterpreterObj b) {
         }
 
         ref = setVar(tokText(a.primary), b);
+        ref->nameAllocated = true;
     } PANIC_END_TRY
 
     return (InterpreterObj){
@@ -499,7 +506,8 @@ STATIC void interpretStmt(Statement stmt) {
         }
         case StmtTag_For: {
             pushScope();
-            setVar(tokText(stmt.for_.iterator), interpretExpr(stmt.for_.min));
+            InterpreterObj* iteratorObj = setVar(tokText(stmt.for_.iterator), interpretExpr(stmt.for_.min));
+            iteratorObj->nameAllocated = true;
             Expression iterator = (Expression){
                 .tag = ExprTag_Primary,
                 .primary = stmt.for_.iterator,
