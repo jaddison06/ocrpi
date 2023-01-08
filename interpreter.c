@@ -108,9 +108,9 @@ STATIC INLINE InterpreterObj* setVar(char* name, InterpreterObj value) {
     return out; \
 }
 
-_SINGLE_EXPR_SHORTCUT(bool, isTruthy)
-
 STATIC INLINE InterpreterObj assign(Expression a, InterpreterObj b) {
+    MAKE_ABS(b);
+
     InterpreterObj* ref;
 
     // assignment or initialization!!
@@ -140,6 +140,9 @@ STATIC INLINE InterpreterObj assign(Expression a, InterpreterObj b) {
 }
 
 STATIC bool equal(InterpreterObj a, InterpreterObj b) {
+    MAKE_ABS(a)
+    MAKE_ABS(b)
+
     if (a.tag != b.tag) return false;
     switch (a.tag) {
         case ObjType_Class:
@@ -271,6 +274,7 @@ InterpreterObj binaryExpr(TokType operator, Expression a, Expression b) {
     switch (operator) {
         case Tok_Equal: {
             // doesn't need freeing - assignment!!!!!!!!!!!
+            // todo: what about the previous tenant??
             assign(a, interpretExpr(b));
             break;
         }
@@ -528,6 +532,8 @@ bool isTruthy(InterpreterObj obj) {
         case ObjType_Array: return obj.array.len > 0;
     }
 }
+
+_SINGLE_EXPR_SHORTCUT(bool, isTruthy)
 
 STATIC void interpretStmt(Statement stmt) {
     switch (stmt.tag) {

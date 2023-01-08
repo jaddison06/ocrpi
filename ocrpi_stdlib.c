@@ -17,7 +17,7 @@ static inline void checkTypes(int count, ObjType types[], ObjList arguments) {
 #define TYPELIST(types) (ObjType[]){types}
 
 //* cheeky!! allocates!!
-INLINE char* forceString(InterpreterObj obj) {
+STATIC INLINE char* forceString(InterpreterObj obj) {
     if (obj.tag != ObjType_String) panic(Panic_Stdlib, "Can't force get a C String from a %s!", ObjTypeToString(obj.tag));
     char* out = malloc(obj.string.length + 1);
     memcpy(out, obj.string.start, obj.string.length);
