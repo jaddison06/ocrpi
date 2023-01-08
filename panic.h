@@ -34,7 +34,7 @@ typedef enum {
 
 extern jmp_buf _panicJump;
 
-#define PANIC_TRY { _catchPanic(); uint16_t _panicRet = setjmp(_panicJump); _printU16(_panicRet); if (!_panicRet) {
+#define PANIC_TRY { _catchPanic(); uint16_t _panicRet = setjmp(_panicJump); printU16(_panicRet); if (!_panicRet) {
 
 #define PANIC_CATCH(code) } else if ((_panicRet & _PANIC_CATCHABLE_CODE_MASK) == (code << 8)) { _releasePanic();
 
