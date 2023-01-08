@@ -19,6 +19,17 @@ struct Scope {
 static Scope* currentScope = NULL;
 static Scope* globalScope = NULL;
 
+//* if it's a temporary, get rid!!
+//* if it's assigned leave it until the scope gets destroyed
+STATIC void freeObj(InterpreterObj obj) {
+    switch (obj.tag) {
+        case ObjType_String: {
+            if (obj.string.allocated) free(obj.string.start);
+            break;
+        }
+    }
+}
+
 STATIC Scope* newScope() {
     Scope* out = malloc(sizeof(Scope));
     out->objects = NewObjNS();
@@ -31,6 +42,7 @@ STATIC void destroyScope(Scope* scope) {
             // whoops!!!!!
             free(object->key);
         }
+        freeObj(object->value);
     }
     DESTROY(scope->objects);
     free(scope);
@@ -80,9 +92,23 @@ STATIC INLINE InterpreterObj* setVar(char* name, InterpreterObj value) {
     else return ObjNSSet(&currentScope->objects, name, value);
 }
 
-STATIC bool isExprTruthy(Expression expr) {
-    return isTruthy(interpretExpr(expr));
+#define _EXPR_SHORTCUT(returnType, name) STATIC returnType name##Exprs(Expression a, Expression b) { \
+    InterpreterObj aObj = interpretExpr(a); \
+    InterpreterObj bObj = interpretExpr(b); \
+    returnType out = name(aObj, bObj); \
+    freeObj(aObj); \
+    freeObj(bObj); \
+    return out; \
 }
+
+#define _SINGLE_EXPR_SHORTCUT(returnType, name) STATIC returnType name##Expr(Expression expr) { \
+    InterpreterObj obj = interpretExpr(expr); \
+    returnType out = name(obj); \
+    freeObj(obj); \
+    return out; \
+}
+
+_SINGLE_EXPR_SHORTCUT(bool, isTruthy)
 
 STATIC INLINE InterpreterObj assign(Expression a, InterpreterObj b) {
     InterpreterObj* ref;
@@ -141,11 +167,7 @@ STATIC bool equal(InterpreterObj a, InterpreterObj b) {
     }
 }
 
-STATIC bool exprEqual(Expression a, Expression b) {
-    return equal(interpretExpr(a), interpretExpr(b));
-}
-
-#define _EXPR_SHORTCUT(returnType, name) STATIC returnType name##Exprs(Expression a, Expression b) { return name(interpretExpr(a), interpretExpr(b)); }
+_EXPR_SHORTCUT(bool, equal)
 
 #define NUMERIC_OP(name, op) STATIC InterpreterObj name(InterpreterObj a, InterpreterObj b) { \
     MAKE_ABS(a); \
@@ -248,6 +270,7 @@ InterpreterObj binaryExpr(TokType operator, Expression a, Expression b) {
 
     switch (operator) {
         case Tok_Equal: {
+            // doesn't need freeing - assignment!!!!!!!!!!!
             assign(a, interpretExpr(b));
             break;
         }
@@ -272,11 +295,11 @@ InterpreterObj binaryExpr(TokType operator, Expression a, Expression b) {
             break;
         }
 
-        case Tok_Or: return BOOLOBJ(isExprTruthy(a) || isExprTruthy(b));
-        case Tok_And: return BOOLOBJ(isExprTruthy(a) && isExprTruthy(b));
+        case Tok_Or: return BOOLOBJ(isTruthyExpr(a) || isTruthyExpr(b));
+        case Tok_And: return BOOLOBJ(isTruthyExpr(a) && isTruthyExpr(b));
 
-        case Tok_EqualEqual: return BOOLOBJ(exprEqual(a, b));
-        case Tok_BangEqual: return BOOLOBJ(!exprEqual(a, b));
+        case Tok_EqualEqual: return BOOLOBJ(equalExprs(a, b));
+        case Tok_BangEqual: return BOOLOBJ(!equalExprs(a, b));
 
         case Tok_Less: return BOOLOBJ(lessExprs(a, b));
         case Tok_LessEqual: return BOOLOBJ(lessEqualExprs(a, b));
@@ -300,6 +323,7 @@ STATIC ObjList parseArgsForNative(CallExpr call) {
     ObjList out;
     INIT(out);
     FOREACH(ExprList, call.arguments, current) {
+        // freed after native func call!!
         APPEND(out, IOAbs(interpretExpr(*current)));
     }
     return out;
@@ -309,6 +333,7 @@ STATIC ObjList parseArgsForNative(CallExpr call) {
 //*   - Expressions should be kept as expressions until as late as possible - only evaluate it when you need it!!
 //*   - If a function needs a non-referenced value it's the responsibility of THAT FUNCTION to call IOAbs - slightly more work but means
 //*     some actual consistency
+//*   - Calls to interpretExpr need a corresponding call to freeObj if the result's a temporary!!
 
 InterpreterObj interpretExpr(Expression expr) {
     InterpreterObj out;
@@ -325,6 +350,7 @@ InterpreterObj interpretExpr(Expression expr) {
         case ExprTag_Call: {
             switch (expr.call.tag) {
                 case Call_Call: {
+                    // won't allocate - it's a lookup i think?
                     InterpreterObj calleeObj = IOAbs(interpretExpr(*expr.call.callee));
 
                     if (!(
@@ -351,6 +377,7 @@ InterpreterObj interpretExpr(Expression expr) {
 
                             // Evaluate function arguments in the CURRENT SCOPE, adding results to the NEW SCOPE
                             for (int i = 0; i < expr.call.arguments.len; i++) {
+                                // essentially an assign so freed when the scope is destroyed!!!!!!!
                                 InterpreterObj arg = interpretExpr(expr.call.arguments.root[i]);
                                 if (calleeObj.func.params.root[i].passMode == Param_byRef) {
                                     if (!arg.tag == ObjType_Ref) panic(Panic_Interpreter, "Can't pass a %s by reference!", ExprTagToString(expr.call.arguments.root[i].tag));
@@ -391,12 +418,18 @@ InterpreterObj interpretExpr(Expression expr) {
                         case ObjType_NativeFunc: {
                             ObjList args = parseArgsForNative(expr.call);
                             out = calleeObj.nativeFunc(args);
+                            FOREACH(ObjList, args, obj) {
+                                freeObj(*obj);
+                            }
                             DESTROY(args);
                             break;
                         }
                         case ObjType_NativeProc: {
                             ObjList args = parseArgsForNative(expr.call);
                             calleeObj.nativeProc(args);
+                            FOREACH(ObjList, args, obj) {
+                                freeObj(*obj);
+                            }
                             DESTROY(args);
                             SET_OUT({.tag = ObjType_Nil});
                             break;
@@ -417,7 +450,7 @@ InterpreterObj interpretExpr(Expression expr) {
             break;
         }
         case ExprTag_Grouping: {
-            interpretExpr(*expr.grouping);
+            out = interpretExpr(*expr.grouping);
             break;
         }
         case ExprTag_Primary: {
@@ -475,9 +508,8 @@ STATIC INLINE InterpreterObj IOAbs(InterpreterObj obj) {
 }
 
 bool isTruthy(InterpreterObj obj) {
+    MAKE_ABS(obj);
     switch (obj.tag) {
-        case ObjType_Ref: return isTruthy(*obj.reference);
-
         case ObjType_Class:
         case ObjType_Func:
         case ObjType_Proc:
@@ -549,7 +581,7 @@ STATIC void interpretStmt(Statement stmt) {
                     }
                 }
             };
-            while (isExprTruthy(cond)) {
+            while (isTruthyExpr(cond)) {
                 interpretBlock(*stmt.for_.block);
                 interpretExpr(incr);
             }
@@ -558,29 +590,29 @@ STATIC void interpretStmt(Statement stmt) {
             break;
         }
         case StmtTag_While: {
-            while (isExprTruthy(stmt.while_.condition)) {
+            while (isTruthyExpr(stmt.while_.condition)) {
                 interpretBlock(*stmt.while_.block);
             }
             break;
         }
         case StmtTag_Do: {
             //* yikes!! not a do-while but a do-until!
-            while (!isExprTruthy(stmt.do_.condition)) {
+            while (!isTruthyExpr(stmt.do_.condition)) {
                 interpretBlock(*stmt.do_.block);
             }
             break;
         }
         case StmtTag_If: {
-            if (isExprTruthy(stmt.if_.primary.condition)) {
+            if (isTruthyExpr(stmt.if_.primary.condition)) {
                 interpretBlock(*stmt.if_.primary.block);
             } else {
                 FOREACH(ElseIfList, stmt.if_.secondary, currentBranch) {
-                    if (isExprTruthy(currentBranch->condition)) {
+                    if (isTruthyExpr(currentBranch->condition)) {
                         interpretBlock(*currentBranch->block);
                         break;
                     }
                 }
-                if (stmt.if_.hasElse && isExprTruthy(stmt.if_.else_.condition)) {
+                if (stmt.if_.hasElse && isTruthyExpr(stmt.if_.else_.condition)) {
                     interpretBlock(*stmt.if_.else_.block);
                 }
             }
