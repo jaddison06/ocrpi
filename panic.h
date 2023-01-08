@@ -34,11 +34,11 @@ typedef enum {
 
 extern jmp_buf _panicJump;
 
-#define PANIC_TRY { _catchPanic(); bool _panicCaught = false; uint16_t _panicRet = setjmp(_panicJump); printU16(_panicRet); if (!_panicRet) {
+#define PANIC_TRY { _catchPanic(); uint16_t _panicRet = setjmp(_panicJump); _printU16(_panicRet); if (!_panicRet) {
 
-#define PANIC_CATCH(code) } else if ((_panicRet & _PANIC_CATCHABLE_CODE_MASK) == (code << 8)) { _releasePanic(); _panicCaught = true;
+#define PANIC_CATCH(code) } else if ((_panicRet & _PANIC_CATCHABLE_CODE_MASK) == (code << 8)) { _releasePanic();
 
-#define PANIC_END_TRY } if (!_panicCaught) _panicFailure(_panicRet); }
+#define PANIC_END_TRY _panicRet = 0; } if (_panicRet) _panicFailure(_panicRet); }
 
 // just in case 
 #if defined(OCRPI_DEBUG) && OCRPI_PRINT_PANIC_CODES

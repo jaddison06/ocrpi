@@ -10,8 +10,12 @@ print(10 - 7)
 print(2 + 3)
 print("Hello" + ", " + "Concatenation!")
 
+print("EEEEEEEEEEEEEEEEEEEEEEEEE")
+
 // get allocated bitch!!
 a = "str1" + "str2"
+
+print("asdasdasndojasn")
 
 print(a)
 
