@@ -488,7 +488,10 @@ InterpreterObj interpretExpr(Expression expr) {
                 }
                 case Tok_Identifier: {
                     InterpreterObj* obj = findObj(text);
-                    if (obj == NULL) panic(PANIC_CATCHABLE(Panic_Interpreter, PCC_InterpreterUnknownVar), "Unknown variable %s!", text);
+                    if (obj == NULL) {
+                        free(text);
+                        panic(PANIC_CATCHABLE(Panic_Interpreter, PCC_InterpreterUnknownVar), "Unknown variable!");
+                    }
                     SET_OUT({.tag = ObjType_Ref, .reference = obj});
                     break;
                 }

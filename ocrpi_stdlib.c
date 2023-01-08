@@ -28,6 +28,7 @@ INLINE char* forceString(InterpreterObj obj) {
 static StringObj objToString(InterpreterObj obj) {
     char* out;
     bool allocated = false;
+    int length = -1;
 
     switch (obj.tag) {
         case ObjType_Ref: {
@@ -84,6 +85,7 @@ static StringObj objToString(InterpreterObj obj) {
                 out = malloc(obj.string.length);
                 memcpy(out, obj.string.start, obj.string.length);
                 allocated = true;
+                length = obj.string.length;
             } else {
                 return obj.string;
             }
@@ -97,6 +99,7 @@ static StringObj objToString(InterpreterObj obj) {
             break;
         }
         case ObjType_Array: {
+            // todo: use length instead of null-term
             int len = 1;
             int cap = 1;
             out = malloc(1);
@@ -121,7 +124,7 @@ static StringObj objToString(InterpreterObj obj) {
         }
     }
     return (StringObj){
-        .length = strlen(out),
+        .length = length == -1 ? strlen(out) : length,
         .start = out,
         .allocated = allocated
     };
