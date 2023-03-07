@@ -31,7 +31,7 @@ typedef struct {
 
 struct InterpreterObj {
     ObjType tag;
-    bool nameAllocated;
+    bool _nameAllocated;
     union {
         StringObj string;
         bool bool_;

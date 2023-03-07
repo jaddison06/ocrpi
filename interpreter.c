@@ -20,7 +20,8 @@ static Scope* currentScope = NULL;
 static Scope* globalScope = NULL;
 
 //* if it's a temporary, get rid!!
-//* if it's assigned leave it until the scope gets destroyed
+//* this doesn't free references so you're ok to call it on var names etc
+//* but if you've called IOAbs on an object then make sure you're ok to free it!!
 STATIC void freeObj(InterpreterObj obj) {
     switch (obj.tag) {
         case ObjType_String: {
@@ -38,7 +39,7 @@ STATIC Scope* newScope() {
 
 STATIC void destroyScope(Scope* scope) {
     FOREACH(ObjNS, scope->objects, object) {
-        if (object->value.nameAllocated) {
+        if (object->value._nameAllocated) {
             // whoops!!!!!
             free(object->key);
         }
@@ -99,7 +100,8 @@ STATIC INLINE InterpreterObj* findObj(char* name) {
     return obj;
 }
 
-STATIC INLINE InterpreterObj* setVar(char* name, InterpreterObj value) {
+STATIC INLINE InterpreterObj* setVar(char* name, InterpreterObj value, bool nameAllocated) {
+    value._nameAllocated = nameAllocated;
     InterpreterObj* obj = findObj(name);
     if (obj != NULL) {
         *obj = value;
@@ -130,8 +132,7 @@ STATIC INLINE InterpreterObj assign(Expression a, InterpreterObj b) {
             panic(Panic_Interpreter, "This type of value can only be assigned to!");
         }
 
-        ref = setVar(tokText(a.primary), b);
-        ref->nameAllocated = true;
+        ref = setVar(tokText(a.primary), b, true);
     } PANIC_END_TRY
 
     return (InterpreterObj){
@@ -546,8 +547,7 @@ STATIC void interpretStmt(Statement stmt) {
         }
         case StmtTag_For: {
             pushScope();
-            InterpreterObj* iteratorObj = setVar(tokText(stmt.for_.iterator), interpretExpr(stmt.for_.min));
-            iteratorObj->nameAllocated = true;
+            InterpreterObj* iteratorObj = setVar(tokText(stmt.for_.iterator), interpretExpr(stmt.for_.min), true);
             Expression iterator = (Expression){
                 .tag = ExprTag_Primary,
                 .primary = stmt.for_.iterator,
@@ -639,14 +639,14 @@ STATIC void interpretProc(ProcDecl proc) {
     setVar(tokText(proc.name), (InterpreterObj){
         .tag = ObjType_Proc,
         .proc = proc
-    });
+    }, true);
 }
 
 STATIC void interpretFun(FunDecl func) {
     setVar(tokText(func.name), (InterpreterObj){
         .tag = ObjType_Func,
         .func = func
-    });
+    }, true);
 }
 
 STATIC void interpretClass(ClassDecl class) {
@@ -709,14 +709,14 @@ STATIC void setupSTL() {
         setVar(stl_funcs[i].name, (InterpreterObj){
             .tag = ObjType_NativeFunc,
             .nativeFunc = stl_funcs[i].func
-        });
+        }, false);
     }
 
     for (int i = 0; stl_procs[i].name[0] != '\0'; i++) {
         setVar(stl_procs[i].name, (InterpreterObj){
             .tag = ObjType_NativeProc,
             .nativeProc = stl_procs[i].proc
-        });
+        }, false);
     }
 }
 
