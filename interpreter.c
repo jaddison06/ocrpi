@@ -11,6 +11,8 @@ DECL_MAP(InterpreterObj, ObjNS);
 
 typedef struct Scope Scope;
 
+#define IOBJ(...) (InterpreterObj){__VA_ARGS__}
+
 struct Scope {
     ObjNS objects;
     Scope* parent;
@@ -31,6 +33,30 @@ STATIC void freeObj(InterpreterObj obj) {
     }
 }
 
+STATIC InterpreterObj copyObj(InterpreterObj obj) {
+    switch (obj.tag) {
+        case ObjType_String: {
+            char* copy = malloc(obj.string.length);
+            memcpy(copy, obj.string.start, obj.string.length);
+            return IOBJ(
+                .tag = ObjType_String,
+                .string = (StringObj){
+                    .start = copy,
+                    .length = obj.string.length,
+                    .allocated = true
+                }
+            );
+        }
+        case ObjType_Bool:
+        case ObjType_Int:
+        case ObjType_Float:
+        {
+            return obj;
+        }
+        default: panic(Panic_Interpreter, "Unable to copy object of type %s!", ObjTypeToString(obj.tag));
+    }
+}
+
 STATIC Scope* newScope() {
     Scope* out = malloc(sizeof(Scope));
     out->objects = NewObjNS();
@@ -40,7 +66,6 @@ STATIC Scope* newScope() {
 STATIC void destroyScope(Scope* scope) {
     FOREACH(ObjNS, scope->objects, object) {
         if (object->value._nameAllocated) {
-            // whoops!!!!!
             free(object->key);
         }
         freeObj(object->value);
@@ -121,6 +146,13 @@ STATIC INLINE InterpreterObj assign(Expression a, InterpreterObj b) {
         // try and find the object and assign to it
         InterpreterObj target = interpretExpr(a);
         if (target.tag != ObjType_Ref) panic(Panic_Interpreter, "Can't assign - not an lvalue! (%s)", ExprTagToString(a.tag));
+        // ok this is tenuous but i think this might genuinely work for class objects etc - because it's a ref in memory,
+        // we can store it as a double reference - making unwinding costly, but allowing us to skip freeing it as we don't free
+        // refs anyway!
+        //
+        // (how do we free it when it actually needs freeing? ask a better man than me - we probs need either a special case or
+        // something to detect level 1 refs)
+        freeObj(*target.reference);
         *target.reference = b;
         ref = target.reference;
     } PANIC_CATCH(PCC_InterpreterUnknownVar) {
@@ -330,7 +362,7 @@ STATIC ObjList parseArgsForNative(CallExpr call) {
     INIT(out);
     FOREACH(ExprList, call.arguments, current) {
         // freed after native func call!!
-        APPEND(out, IOAbs(interpretExpr(*current)));
+        APPEND(out, copyObj(IOAbs(interpretExpr(*current))));
     }
     return out;
 }
@@ -339,11 +371,10 @@ STATIC ObjList parseArgsForNative(CallExpr call) {
 //*   - Expressions should be kept as expressions until as late as possible - only evaluate it when you need it!!
 //*   - If a function needs a non-referenced value it's the responsibility of THAT FUNCTION to call IOAbs - slightly more work but means
 //*     some actual consistency
-//*   - Calls to interpretExpr need a corresponding call to freeObj if the result's a temporary!!
+//*   - Calls to interpretExpr need a corresponding call to freeObj if the result's a temporary!! (which it almost always is)
 
 InterpreterObj interpretExpr(Expression expr) {
     InterpreterObj out;
-#define SET_OUT(...) out = (InterpreterObj)__VA_ARGS__
 
     switch (expr.tag) {
         case ExprTag_Unary: {
@@ -377,7 +408,6 @@ InterpreterObj interpretExpr(Expression expr) {
                             if (expr.call.arguments.len != calleeObj.func.params.len)
                                 panic(Panic_Interpreter, "Called function %s with %i args instead of %i", tokText(calleeObj.func.name), expr.call.arguments.len, calleeObj.func.params.len);
 
-                            // We're gonna be passing these in as POINTERS so 
                             ObjList referenceArgs;
                             INIT(referenceArgs);
 
@@ -389,10 +419,12 @@ InterpreterObj interpretExpr(Expression expr) {
                                     if (!arg.tag == ObjType_Ref) panic(Panic_Interpreter, "Can't pass a %s by reference!", ExprTagToString(expr.call.arguments.root[i].tag));
                                     ObjNSSet(&executionScope->objects, tokText(calleeObj.func.params.root[i].name), (InterpreterObj){
                                         .tag = ObjType_Ref,
-                                        .reference = &arg
+                                        .reference = &arg,
+                                        ._nameAllocated = true
                                     });
                                 } else {
-                                    ObjNSSet(&executionScope->objects, tokText(calleeObj.func.params.root[i].name), IOAbs(arg));
+                                    InterpreterObj* newObj = ObjNSSet(&executionScope->objects, tokText(calleeObj.func.params.root[i].name), copyObj(IOAbs(arg)));
+                                    newObj->_nameAllocated = true;
                                 }
                             }
 
@@ -437,7 +469,7 @@ InterpreterObj interpretExpr(Expression expr) {
                                 freeObj(*obj);
                             }
                             DESTROY(args);
-                            SET_OUT({.tag = ObjType_Nil});
+                            out = IOBJ(.tag = ObjType_Nil);
                             break;
                         }
                     }
@@ -464,32 +496,32 @@ InterpreterObj interpretExpr(Expression expr) {
             switch (expr.primary.type) {
                 // todo: handle self
                 case Tok_Nil: {
-                    SET_OUT({.tag = ObjType_Nil});
+                    out = IOBJ(.tag = ObjType_Nil);
                     break;
                 }
                 case Tok_True:
                 case Tok_False: {
-                    SET_OUT({.tag = ObjType_Bool, .bool_ = expr.primary.type == Tok_True});
+                    out = IOBJ(.tag = ObjType_Bool, .bool_ = expr.primary.type == Tok_True);
                     break;
                 }
                 case Tok_StringLit: {
                     // strip leading & trailing quotes!
-                    SET_OUT({
+                    out = IOBJ(
                         .tag = ObjType_String,
                         .string = (StringObj){
                             .start = expr.primary.start + 1,
                             .length = expr.primary.length - 2,
                             .allocated = false
                         }
-                    });
+                    );
                     break;
                 }
                 case Tok_IntLit: {
-                    SET_OUT({.tag = ObjType_Int, .int_ = atoi(text)});
+                    out = IOBJ(.tag = ObjType_Int, .int_ = atoi(text));
                     break;
                 }
                 case Tok_FloatLit: {
-                    SET_OUT({.tag = ObjType_Float, .float_ = strtof(text, NULL)});
+                    out = IOBJ(.tag = ObjType_Float, .float_ = strtof(text, NULL));
                     break;
                 }
                 case Tok_Identifier: {
@@ -498,7 +530,7 @@ InterpreterObj interpretExpr(Expression expr) {
                         free(text);
                         panic(PANIC_CATCHABLE(Panic_Interpreter, PCC_InterpreterUnknownVar), "Unknown variable!");
                     }
-                    SET_OUT({.tag = ObjType_Ref, .reference = obj});
+                    out = IOBJ(.tag = ObjType_Ref, .reference = obj);
                     break;
                 }
             }
@@ -507,8 +539,6 @@ InterpreterObj interpretExpr(Expression expr) {
         }
     }
     return out;
-
-#undef SET_OUT
 }
 
 STATIC INLINE InterpreterObj IOAbs(InterpreterObj obj) {
