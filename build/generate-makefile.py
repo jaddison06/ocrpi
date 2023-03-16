@@ -2,7 +2,7 @@
 
 import os
 import os.path as path
-from sys import argv
+from sys import argv, executable
 from shutil import rmtree
 from platform import system
 from typing import Callable
@@ -34,7 +34,7 @@ LIBS: dict[str, list[str]] = {'Linux': ['m']}
 EXECUTABLE = 'ocrpi'
 SOURCE_EXTS = ['.c']
 HEADER_EXTS = ['.h']
-PYTHON = 'python'
+PYTHON = executable
 CLOC = 'C:/Users/jjadd/Downloads/cloc-1.92.exe' if system() == 'Windows' else 'cloc'
 CODEGEN_CONFIG = 'generate.yaml'
 CODEGEN_OUTPUT = './generated'
